@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Liquid Heightmap Generator with Temperature-based Coloring</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .slider-container {
+            margin-bottom: 10px;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="generateBtn">Return Home</button>
+        <div class="slider-container">
+            <label for="intensitySlider">Wave Intensity:</label>
+            <input type="range" id="intensitySlider" min="0" max="100" value="50">
+            <span id="intensityValue">50</span>
+        </div>
+        <div class="slider-container">
+            <label for="resolutionSlider">Resolution:</label>
+            <input type="range" id="resolutionSlider" min="50" max="300" value="150">
+            <span id="resolutionValue">150</span>
+        </div>
+        <div>
+            Camera Controls:<br>
+            W/S: Move Forward/Backward<br>
+            A/D: Move Left/Right<br>
+            Q/E: Move Up/Down<br>
+            Space: Move Up<br>
+            Shift: Move Down<br>
+            Arrow Keys: Rotate Camera
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script>
+        let scene, camera, renderer, liquidMesh;
+        let resolution = 150;
+        let noise, time = 0;
+        let waveIntensity = 0.5;
+        let keys = {};
+        const planeSize = 100;
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            camera.position.set(0, 50, 50);
+            camera.lookAt(0, 0, 0);
+
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            noise = new SimplexNoise();
+
+            generateLiquidHeightmap();
+
+            document.getElementById('generateBtn').addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
+            
+            const intensitySlider = document.getElementById('intensitySlider');
+            const intensityValue = document.getElementById('intensityValue');
+            intensitySlider.addEventListener('input', function() {
+                waveIntensity = this.value / 100;
+                intensityValue.textContent = this.value;
+            });
+
+            const resolutionSlider = document.getElementById('resolutionSlider');
+            const resolutionValue = document.getElementById('resolutionValue');
+            resolutionSlider.addEventListener('input', function() {
+                resolution = parseInt(this.value);
+                resolutionValue.textContent = this.value;
+                generateLiquidHeightmap();
+            });
+
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+        }
+
+        function onKeyDown(event) {
+            keys[event.key.toLowerCase()] = true;
+        }
+
+        function onKeyUp(event) {
+            keys[event.key.toLowerCase()] = false;
+        }
+
+        function updateCamera() {
+            const speed = 0.5;
+            const rotSpeed = 0.02;
+
+            if (keys['w']) camera.position.z -= speed;
+            if (keys['s']) camera.position.z += speed;
+            if (keys['a']) camera.position.x -= speed;
+            if (keys['d']) camera.position.x += speed;
+            if (keys['q']) camera.position.y += speed;
+            if (keys['e']) camera.position.y -= speed;
+            if (keys[' ']) camera.position.y += speed;
+            if (keys['shift']) camera.position.y -= speed;
+
+            if (keys['arrowleft']) camera.rotation.y += rotSpeed;
+            if (keys['arrowright']) camera.rotation.y -= rotSpeed;
+            if (keys['arrowup']) camera.rotation.x += rotSpeed;
+            if (keys['arrowdown']) camera.rotation.x -= rotSpeed;
+        }
+
+        function generateLiquidHeightmap() {
+            if (liquidMesh) {
+                scene.remove(liquidMesh);
+            }
+
+            const geometry = new THREE.PlaneGeometry(planeSize, planeSize, resolution - 1, resolution - 1);
+            const material = new THREE.MeshPhongMaterial({
+                specular: 0x111111,
+                shininess: 30,
+                side: THREE.DoubleSide,
+                vertexColors: true
+            });
+
+            liquidMesh = new THREE.Mesh(geometry, material);
+            liquidMesh.rotation.x = -Math.PI / 2;
+            scene.add(liquidMesh);
+
+            updateLiquidHeightmap();
+        }
+
+        function getHeight(x, z, time) {
+            const scale = 0.02 + waveIntensity * 0.08;
+            const baseHeight = noise.noise3D(x * scale, z * scale, time * 0.5);
+            const detailHeight = noise.noise3D(x * scale * 2, z * scale * 2, time) * 0.5;
+            return (baseHeight + detailHeight) * 20 * waveIntensity;
+        }
+
+        function getColorForHeight(height) {
+            const colors = [
+                { h: -10, color: new THREE.Color(0x000066) }, // Deep blue
+                { h: -5,  color: new THREE.Color(0x0000FF) }, // Blue
+                { h: 0,   color: new THREE.Color(0x00FFFF) }, // Cyan
+                { h: 5,   color: new THREE.Color(0x00FF00) }, // Green
+                { h: 10,  color: new THREE.Color(0xFFFF00) }, // Yellow
+                { h: 15,  color: new THREE.Color(0xFF8000) }, // Orange
+                { h: 20,  color: new THREE.Color(0xFF0000) }, // Red
+                { h: 25,  color: new THREE.Color(0xFFFFFF) }  // White
+            ];
+
+            for (let i = 1; i < colors.length; i++) {
+                if (height <= colors[i].h) {
+                    const t = (height - colors[i-1].h) / (colors[i].h - colors[i-1].h);
+                    return colors[i-1].color.clone().lerp(colors[i].color, t);
+                }
+            }
+            return colors[colors.length - 1].color;
+        }
+
+        function updateLiquidHeightmap() {
+            const positions = liquidMesh.geometry.attributes.position;
+            const colors = new Float32Array(positions.count * 3);
+
+            for (let i = 0; i < positions.count; i++) {
+                const x = positions.getX(i);
+                const z = positions.getY(i);
+                const height = getHeight(x, z, time);
+                
+                positions.setZ(i, height);
+
+                const color = getColorForHeight(height);
+                color.toArray(colors, i * 3);
+            }
+
+            liquidMesh.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            liquidMesh.geometry.attributes.position.needsUpdate = true;
+            liquidMesh.geometry.computeVertexNormals();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+            updateLiquidHeightmap();
+            updateCamera();
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

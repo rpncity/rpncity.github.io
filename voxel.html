@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Voxel-based Heatmap Light Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+        .dg.main {
+            position: absolute !important;
+            top: 10px !important;
+            right: 10px !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h3>Camera Controls:</h3>
+        <p>W/S: Move forward/backward</p>
+        <p>A/D: Move left/right</p>
+        <p>Space: Move up</p>
+        <p>Shift: Move down</p>
+        <p>Arrow Keys: Rotate camera</p>
+    </div>
+    <script>
+        let scene, camera, renderer, light, lightVoxel, lightSphere, cubeVoxels, cubeOutline;
+        const gridSize = 20;
+        const voxelSize = 0.5;
+        const moveSpeed = 0.1;
+        const rotateSpeed = 0.02;
+        const keyState = {};
+        const lightRange = 30;
+        let spinSpeed = 0;
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(15, 15, 15);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            light = new THREE.PointLight(0xffffff, 1, 100);
+            scene.add(light);
+
+            createVoxelLight();
+            createLightSphere();
+            createCubeVoxels();
+            createCubeOutline();
+            setupGUI();
+            setupKeyboardControls();
+
+            animate();
+        }
+
+        function createVoxelLight() {
+            const geometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
+            const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            lightVoxel = new THREE.Mesh(geometry, material);
+            scene.add(lightVoxel);
+        }
+
+        function createLightSphere() {
+            const geometry = new THREE.SphereGeometry(2, 32, 32);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                transparent: true,
+                opacity: 0.2
+            });
+            lightSphere = new THREE.Mesh(geometry, material);
+            scene.add(lightSphere);
+        }
+
+        function createCubeVoxels() {
+            cubeVoxels = new THREE.Group();
+            const geometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
+
+            for (let x = 0; x < gridSize; x++) {
+                for (let y = 0; y < gridSize; y++) {
+                    for (let z = 0; z < gridSize; z++) {
+                        const material = new THREE.MeshBasicMaterial({ 
+                            color: 0xcccccc, 
+                            transparent: true, 
+                            opacity: 0.05 
+                        });
+                        const voxel = new THREE.Mesh(geometry, material);
+                        voxel.position.set(
+                            (x - gridSize / 2 + 0.5) * voxelSize,
+                            (y - gridSize / 2 + 0.5) * voxelSize,
+                            (z - gridSize / 2 + 0.5) * voxelSize
+                        );
+                        cubeVoxels.add(voxel);
+                    }
+                }
+            }
+            scene.add(cubeVoxels);
+        }
+
+        function createCubeOutline() {
+            const size = gridSize * voxelSize;
+            const geometry = new THREE.BoxGeometry(size, size, size);
+            const edges = new THREE.EdgesGeometry(geometry);
+            cubeOutline = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
+            scene.add(cubeOutline);
+        }
+
+        function updateHeatmap() {
+            const maxDistance = Math.sqrt(3) * gridSize * voxelSize / 2;
+            const inverseRotation = new THREE.Quaternion().copy(cubeVoxels.quaternion).invert();
+            const rotatedLightPosition = light.position.clone().applyQuaternion(inverseRotation);
+
+            cubeVoxels.children.forEach(voxel => {
+                const distance = voxel.position.distanceTo(rotatedLightPosition);
+                const t = Math.max(0, 1 - Math.min(distance / maxDistance, 1));
+                const color = new THREE.Color().setHSL(0.7 - 0.7 * t, 1, 0.5);
+                voxel.material.color.set(color);
+                voxel.material.opacity = 0.05 + 0.4 * t * t;
+            });
+        }
+
+        function setupGUI() {
+            const gui = new dat.GUI();
+            
+            const params = {
+                lightX: 0,
+                lightY: 5,
+                lightZ: 0,
+                spinSpeed: 0,
+                returnToIndex: function() {
+                    window.location.href = 'index.html';
+                }
+            };
+
+            gui.add(params, 'lightX', -lightRange, lightRange).onChange(updateLightPosition);
+            gui.add(params, 'lightY', -lightRange, lightRange).onChange(updateLightPosition);
+            gui.add(params, 'lightZ', -lightRange, lightRange).onChange(updateLightPosition);
+            gui.add(params, 'spinSpeed', 0, 0.1).onChange(value => spinSpeed = value);
+            gui.add(params, 'returnToIndex').name('Return Home');
+
+            function updateLightPosition() {
+                const position = new THREE.Vector3(
+                    params.lightX * voxelSize,
+                    params.lightY * voxelSize,
+                    params.lightZ * voxelSize
+                );
+                light.position.copy(position);
+                lightVoxel.position.copy(position);
+                lightSphere.position.copy(position);
+                updateHeatmap();
+            }
+
+            updateLightPosition();
+        }
+
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                keyState[e.code] = true;
+                if (e.code === 'Space' || e.code === 'ShiftLeft') {
+                    e.preventDefault();
+                }
+            });
+            document.addEventListener('keyup', (e) => keyState[e.code] = false);
+        }
+
+        function updateCamera() {
+            if (keyState['KeyW']) camera.translateZ(-moveSpeed);
+            if (keyState['KeyS']) camera.translateZ(moveSpeed);
+            if (keyState['KeyA']) camera.translateX(-moveSpeed);
+            if (keyState['KeyD']) camera.translateX(moveSpeed);
+            if (keyState['Space']) camera.position.y += moveSpeed;
+            if (keyState['ShiftLeft']) camera.position.y -= moveSpeed;
+            if (keyState['ArrowLeft']) camera.rotateY(rotateSpeed);
+            if (keyState['ArrowRight']) camera.rotateY(-rotateSpeed);
+            if (keyState['ArrowUp']) camera.rotateX(rotateSpeed);
+            if (keyState['ArrowDown']) camera.rotateX(-rotateSpeed);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updateCamera();
+            cubeVoxels.rotation.y += spinSpeed;
+            cubeOutline.rotation.y += spinSpeed;
+            updateHeatmap();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>
