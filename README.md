@@ -1,4 +1,4 @@
-These are some demos of various simulations built using the help of generative AI. Currently there are 4 demos:
+These are some demos of various simulations built using the help of generative AI. Currently there are 6 WIP demos:
 
 # Hexagonal Terrain
 ![Alt text](images/hexagonal-preview.gif)
