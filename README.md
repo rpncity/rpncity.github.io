@@ -1,1 +1,1 @@
-These are some demos of various simulastions built using the help of generative AI. 
+These are some demos of various simulations built using the help of generative AI. 
