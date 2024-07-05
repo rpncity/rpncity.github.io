@@ -11,5 +11,5 @@ These are some demos of various simulations built using the help of generative A
 # Nobody Here
 ### based on [nobody here](https://www.youtube.com/watch?v=-RFunvF0mDw)
 ![Alt text](images/road-preview.gif)
-# Smooth Terrain
+# Voxel Plot 
 ![Alt text](images/voxelplot-preview.gif)
