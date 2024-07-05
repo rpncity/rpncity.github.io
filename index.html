@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Misc Demos</title>
+    <title>RPN City</title>
+    <link rel="icon" href="images\favicon.ico" type="image/x-icon">
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -17,10 +18,14 @@
             flex-direction: column;
             align-items: center;
         }
-        .header {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 20px;
+
+        .header img {
+            width: 200px; /* Adjust size as needed */
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .header-title {
+            font-size: 32px;
             color: #c0c0c0;
         }
         .card-container {
@@ -117,7 +122,10 @@
     </style>
 </head>
 <body>
-    <div class="header">MISC DEMOS</div>
+    <div class="header">
+        <img src="images/logo.png" alt="RPN City Logo">
+     
+    </div>
     <div class="card-container">
         <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
             <div class="card-image">
