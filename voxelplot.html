@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Voxel Plot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+        #three-container {
+            width: 100%;
+            height: 100%;
+        }
+        #matrix-window {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(26, 26, 26, 0.8);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+        #matrix-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: move;
+            padding: 5px;
+            background-color: rgba(50, 50, 50, 0.8);
+            border-radius: 5px;
+        }
+        #matrix {
+            display: grid;
+            grid-template-columns: repeat(16, 20px);
+            gap: 1px;
+            margin-bottom: 10px;
+        }
+        .cell {
+            width: 20px;
+            height: 20px;
+            background-color: #333;
+            border: 1px solid #555;
+            cursor: pointer;
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #444;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+        }
+        #color-picker {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #hide-instructions, #show-instructions {
+            background-color: transparent;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        #show-instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: none;
+        }
+        #eraser {
+            background-color: #f44336;
+            color: white;
+        }
+        #paint-bucket {
+            background-color: #3f51b5;
+            color: white;
+        }
+        .active-tool {
+            border: 2px solid #4CAF50;
+        }
+        .cell.selected {
+            border: 2px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div id="three-container"></div>
+    <div id="matrix-window">
+        <div id="matrix-header">
+            <span>2D Matrix</span>
+            <button id="minimize-matrix">_</button>
+        </div>
+        <div id="matrix-content">
+            <div id="z-level">Z-Level: 0</div>
+            <div id="controls">
+                <button id="up">↑</button>
+                <button id="down">↓</button>
+                <button id="toggle-grid">Toggle Grid</button>
+            </div>
+            <div id="matrix"></div>
+            <div id="color-picker">
+                <label for="color-input">Color: </label>
+                <input type="color" id="color-input" value="#ff0000">
+                <button id="eraser">Eraser</button>
+                <button id="paint-bucket">Draw</button>
+            </div>
+        </div>
+    </div>
+    <div id="instructions">
+        <div>
+            <strong>Camera Controls:</strong>
+            W/S: Forward/Back | A/D: Left/Right | Q/E: Up/Down | Arrow keys: Rotate
+        </div>
+        <button id="hide-instructions">Hide</button>
+    </div>
+    <button id="show-instructions">Show Controls</button>
+
+    <script>
+        const matrixSize = 16;
+        const maxZLevel = 15;
+        let currentZLevel = 0;
+        const voxelData = Array(matrixSize).fill().map(() => 
+            Array(matrixSize).fill().map(() => 
+                Array(maxZLevel + 1).fill(null)
+            )
+        );
+
+        const matrixElement = document.getElementById('matrix');
+        const zLevelElement = document.getElementById('z-level');
+        const upButton = document.getElementById('up');
+        const downButton = document.getElementById('down');
+        const colorInput = document.getElementById('color-input');
+        const toggleGridButton = document.getElementById('toggle-grid');
+        const minimizeButton = document.getElementById('minimize-matrix');
+        const matrixWindow = document.getElementById('matrix-window');
+        const matrixHeader = document.getElementById('matrix-header');
+        const matrixContent = document.getElementById('matrix-content');
+        const hideInstructionsButton = document.getElementById('hide-instructions');
+        const showInstructionsButton = document.getElementById('show-instructions');
+        const instructions = document.getElementById('instructions');
+        const eraserButton = document.getElementById('eraser');
+        const paintBucketButton = document.getElementById('paint-bucket');
+
+        let isErasing = false;
+        let isPaintBucket = false;
+        let isDraggingWindow = false;
+        let isSelecting = false;
+        let selectionStart = null;
+        let selectionEnd = null;
+        let dragOffsetX, dragOffsetY;
+
+        // Create matrix cells
+        for (let i = 0; i < matrixSize * matrixSize; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.index = i;
+            matrixElement.appendChild(cell);
+        }
+
+        // Event listeners for cell selection
+        matrixElement.addEventListener('mousedown', startSelection);
+        matrixElement.addEventListener('mousemove', updateSelection);
+        matrixElement.addEventListener('mouseup', endSelection);
+
+        // Make matrix window draggable from the header only
+        matrixHeader.addEventListener('mousedown', startDraggingWindow);
+        document.addEventListener('mousemove', dragWindow);
+        document.addEventListener('mouseup', stopDraggingWindow);
+
+        // Z-level navigation
+        upButton.addEventListener('click', () => changeZLevel(1));
+        downButton.addEventListener('click', () => changeZLevel(-1));
+
+        // Minimize matrix window
+        minimizeButton.addEventListener('click', () => {
+            matrixContent.style.display = matrixContent.style.display === 'none' ? 'block' : 'none';
+            minimizeButton.textContent = matrixContent.style.display === 'none' ? '□' : '_';
+        });
+
+        // Hide instructions
+        hideInstructionsButton.addEventListener('click', () => {
+            instructions.style.display = 'none';
+            showInstructionsButton.style.display = 'block';
+        });
+
+        // Show instructions
+        showInstructionsButton.addEventListener('click', () => {
+            instructions.style.display = 'flex';
+            showInstructionsButton.style.display = 'none';
+        });
+
+        // Eraser functionality
+        eraserButton.addEventListener('click', () => {
+            isErasing = !isErasing;
+            isPaintBucket = false;
+            eraserButton.classList.toggle('active-tool', isErasing);
+            paintBucketButton.classList.remove('active-tool');
+            colorInput.classList.toggle('active-tool', !isErasing);
+        });
+
+        // Paint bucket functionality
+        paintBucketButton.addEventListener('click', () => {
+            isPaintBucket = !isPaintBucket;
+            isErasing = false;
+            paintBucketButton.classList.toggle('active-tool', isPaintBucket);
+            eraserButton.classList.remove('active-tool');
+            colorInput.classList.toggle('active-tool', !isPaintBucket);
+        });
+
+        function startDraggingWindow(e) {
+            isDraggingWindow = true;
+            dragOffsetX = e.clientX - matrixWindow.offsetLeft;
+            dragOffsetY = e.clientY - matrixWindow.offsetTop;
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function dragWindow(e) {
+            if (isDraggingWindow) {
+                matrixWindow.style.left = (e.clientX - dragOffsetX) + 'px';
+                matrixWindow.style.top = (e.clientY - dragOffsetY) + 'px';
+                e.preventDefault();
+            }
+        }
+
+        function stopDraggingWindow(e) {
+            if (isDraggingWindow) {
+                isDraggingWindow = false;
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }
+
+        function startSelection(e) {
+            if (e.target.classList.contains('cell') && !isDraggingWindow) {
+                isSelecting = true;
+                selectionStart = parseInt(e.target.dataset.index);
+                selectionEnd = selectionStart;
+                updateSelectedCells();
+                e.preventDefault();
+            }
+        }
+
+        function updateSelection(e) {
+            if (isSelecting && e.target.classList.contains('cell')) {
+                selectionEnd = parseInt(e.target.dataset.index);
+                updateSelectedCells();
+                e.preventDefault();
+            }
+        }
+
+        function endSelection(e) {
+            if (isSelecting) {
+                isSelecting = false;
+                applyColorToSelection();
+                e.preventDefault();
+            }
+        }
+
+           function updateSelectedCells() {
+            const cells = matrixElement.getElementsByClassName('cell');
+            const startIndex = selectionStart;
+            const endIndex = selectionEnd;
+            const startRow = Math.floor(startIndex / matrixSize);
+            const startCol = startIndex % matrixSize;
+            const endRow = Math.floor(endIndex / matrixSize);
+            const endCol = endIndex % matrixSize;
+
+            const minRow = Math.min(startRow, endRow);
+            const maxRow = Math.max(startRow, endRow);
+            const minCol = Math.min(startCol, endCol);
+            const maxCol = Math.max(startCol, endCol);
+
+            for (let i = 0; i < cells.length; i++) {
+                const row = Math.floor(i / matrixSize);
+                const col = i % matrixSize;
+                if (row >= minRow && row <= maxRow && col >= minCol && col <= maxCol) {
+                    cells[i].classList.add('selected');
+                } else {
+                    cells[i].classList.remove('selected');
+                }
+            }
+        }
+
+        function applyColorToSelection() {
+            const startIndex = selectionStart;
+            const endIndex = selectionEnd;
+            const startRow = Math.floor(startIndex / matrixSize);
+            const startCol = startIndex % matrixSize;
+            const endRow = Math.floor(endIndex / matrixSize);
+            const endCol = endIndex % matrixSize;
+
+            const minRow = Math.min(startRow, endRow);
+            const maxRow = Math.max(startRow, endRow);
+            const minCol = Math.min(startCol, endCol);
+            const maxCol = Math.max(startCol, endCol);
+
+            for (let row = minRow; row <= maxRow; row++) {
+                for (let col = minCol; col <= maxCol; col++) {
+                    setVoxelColor(col, row);
+                }
+            }
+
+            updateMatrixColors();
+            updateVoxelPlot();
+            clearSelection();
+        }
+
+        function clearSelection() {
+            const cells = matrixElement.getElementsByClassName('cell');
+            for (let cell of cells) {
+                cell.classList.remove('selected');
+            }
+        }
+
+        function changeZLevel(delta) {
+            currentZLevel = Math.max(0, Math.min(maxZLevel, currentZLevel + delta));
+            zLevelElement.textContent = `Z-Level: ${currentZLevel}`;
+            updateMatrixColors();
+        }
+
+        function setVoxelColor(x, y) {
+            if (isPaintBucket || isErasing) {
+                voxelData[y][x][currentZLevel] = isErasing ? null : colorInput.value;
+            } else {
+                voxelData[y][x][currentZLevel] = colorInput.value;
+            }
+        }
+
+        function updateMatrixColors() {
+            const cells = matrixElement.getElementsByClassName('cell');
+            for (let i = 0; i < cells.length; i++) {
+                const x = i % matrixSize;
+                const y = Math.floor(i / matrixSize);
+                cells[i].style.backgroundColor = voxelData[y][x][currentZLevel] || '#333';
+            }
+        }
+
+        // Prevent text selection on double-click
+        matrixWindow.addEventListener('mousedown', (e) => {
+            if (e.detail > 1) {
+                e.preventDefault();
+            }
+        });
+
+        // Three.js setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('three-container').appendChild(renderer.domElement);
+
+        // Adjust camera position and look at point
+        camera.position.set(15, 10, 28);
+        camera.lookAt(7.5, 7.5, 7.5);
+
+        const voxelGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const voxelMaterials = {};
+
+        // Grid
+        const gridSize = matrixSize;
+        const gridHelper = new THREE.GridHelper(gridSize, gridSize);
+        gridHelper.position.set((gridSize - 1) / 2, 0, (gridSize - 1) / 2);
+        scene.add(gridHelper);
+        let gridVisible = true;
+
+        toggleGridButton.addEventListener('click', () => {
+            gridVisible = !gridVisible;
+            gridHelper.visible = gridVisible;
+        });
+
+        function getVoxelMaterial(color) {
+            if (!voxelMaterials[color]) {
+                voxelMaterials[color] = new THREE.MeshBasicMaterial({ color: color });
+            }
+            return voxelMaterials[color];
+        }
+
+        function updateVoxelPlot() {
+            // Remove existing voxels
+            scene.children = scene.children.filter(child => !(child instanceof THREE.Mesh) || child === gridHelper);
+
+            // Add new voxels
+            for (let x = 0; x < matrixSize; x++) {
+                for (let y = 0; y < matrixSize; y++) {
+                    for (let z = 0; z <= maxZLevel; z++) {
+const color = voxelData[y][x][z];
+                        if (color) {
+                            const voxel = new THREE.Mesh(voxelGeometry, getVoxelMaterial(color));
+                            voxel.position.set(x, z, y);
+                            scene.add(voxel);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Camera controls
+        const moveSpeed = 0.1;
+        const rotateSpeed = 0.05;
+
+        document.addEventListener('keydown', (event) => {
+            switch (event.key) {
+                case 'w': camera.position.z -= moveSpeed; break;
+                case 's': camera.position.z += moveSpeed; break;
+                case 'a': camera.position.x -= moveSpeed; break;
+                case 'd': camera.position.x += moveSpeed; break;
+                case 'q': camera.position.y += moveSpeed; break;
+                case 'e': camera.position.y -= moveSpeed; break;
+                case 'ArrowUp': camera.rotation.x -= rotateSpeed; break;
+                case 'ArrowDown': camera.rotation.x += rotateSpeed; break;
+                case 'ArrowLeft': camera.rotation.y -= rotateSpeed; break;
+                case 'ArrowRight': camera.rotation.y += rotateSpeed; break;
+            }
+            camera.updateProjectionMatrix();
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Initial update
+        updateVoxelPlot();
+    </script>
+</body>
+</html>
