@@ -43,6 +43,9 @@
         const keyState = {};
         const lightRange = 30;
         let spinSpeed = 0;
+        let pulsateSpeed = 0;
+        let lightIntensity = 1;
+        let time = 0;
 
         function init() {
             scene = new THREE.Scene();
@@ -54,7 +57,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            light = new THREE.PointLight(0xffffff, 1, 100);
+            light = new THREE.PointLight(0xffffff, lightIntensity, 100);
             scene.add(light);
 
             createVoxelLight();
@@ -123,13 +126,18 @@
             const inverseRotation = new THREE.Quaternion().copy(cubeVoxels.quaternion).invert();
             const rotatedLightPosition = light.position.clone().applyQuaternion(inverseRotation);
 
+            const pulseFactor = 1 + Math.sin(time * pulsateSpeed) * 0.5;
+            const currentIntensity = lightIntensity * pulseFactor;
+
             cubeVoxels.children.forEach(voxel => {
                 const distance = voxel.position.distanceTo(rotatedLightPosition);
-                const t = Math.max(0, 1 - Math.min(distance / maxDistance, 1));
+                const t = Math.max(0, 1 - Math.min(distance / maxDistance, 1)) * currentIntensity;
                 const color = new THREE.Color().setHSL(0.7 - 0.7 * t, 1, 0.5);
                 voxel.material.color.set(color);
                 voxel.material.opacity = 0.05 + 0.4 * t * t;
             });
+
+            lightSphere.material.opacity = 0.2 * currentIntensity;
         }
 
         function setupGUI() {
@@ -140,6 +148,8 @@
                 lightY: 5,
                 lightZ: 0,
                 spinSpeed: 0,
+                pulsateSpeed: 0,
+                lightIntensity: 1,
                 returnToIndex: function() {
                     window.location.href = 'index.html';
                 }
@@ -149,7 +159,12 @@
             gui.add(params, 'lightY', -lightRange, lightRange).onChange(updateLightPosition);
             gui.add(params, 'lightZ', -lightRange, lightRange).onChange(updateLightPosition);
             gui.add(params, 'spinSpeed', 0, 0.1).onChange(value => spinSpeed = value);
-            gui.add(params, 'returnToIndex').name('Return Home');
+            gui.add(params, 'pulsateSpeed', 0, 5).onChange(value => pulsateSpeed = value);
+            gui.add(params, 'lightIntensity', 0, 2).onChange(value => {
+                lightIntensity = value;
+                light.intensity = value;
+            });
+            gui.add(params, 'returnToIndex').name('Return to Index');
 
             function updateLightPosition() {
                 const position = new THREE.Vector3(
@@ -191,6 +206,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            time += 0.016; // Assuming 60fps, adjust if needed
             updateCamera();
             cubeVoxels.rotation.y += spinSpeed;
             cubeOutline.rotation.y += spinSpeed;
