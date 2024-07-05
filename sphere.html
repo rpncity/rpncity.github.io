@@ -26,6 +26,7 @@
         <button id="pauseSim">Pause Sim</button>
         <button id="resetSim">Reset Sim</button>
         <button id="drainToggle">Toggle Drain</button>
+        <button id="generateBtn">Return Home</button>
         <br>
         <label>
             <input type="checkbox" id="autoEmit"> Auto emit particles
@@ -312,7 +313,9 @@
             document.getElementById('drainToggle').textContent = isDraining ? 'Close Drain' : 'Open Drain';
             drain.material.color.setHex(isDraining ? 0xff0000 : 0x000000);
         });
-
+        document.getElementById('generateBtn').addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
         // Mouse interaction
         const mouse = new THREE.Vector2();
         const raycaster = new THREE.Raycaster();
