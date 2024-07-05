@@ -28,6 +28,11 @@
             gap: 20px;
             margin-bottom: 20px;
         }
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
         .card {
             width: 250px;
             background-color: #202020;
@@ -96,51 +101,65 @@
 <body>
     <div class="header">MISC DEMOS</div>
     <div class="card-container">
-        <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
-            <div class="card-image">
-                <img src="images/hexagonal-preview.jpg" alt="Hexagonal Heightmap Preview" 
-                     data-static="images/hexagonal-preview.jpg" data-animated="images/hexagonal-preview.gif">
+        <div class="column">
+            <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
+                <div class="card-image">
+                    <img src="images/hexagonal-preview.jpg" alt="Hexagonal Heightmap Preview" 
+                         data-static="images/hexagonal-preview.jpg" data-animated="images/hexagonal-preview.gif">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Hexagonal Terrain</div>
+                    <a href="hex.html" class="launch-btn" target="_blank">LAUNCH</a>
+                </div>
             </div>
-            <div class="card-content">
-                <div class="card-title">Hexagonal Terrain</div>
-                <a href="hex.html" class="launch-btn" target="_blank">LAUNCH</a>
+            <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
+                <div class="card-image">
+                    <img src="images/road-preview.jpg" alt="Nobody Here" 
+                         data-static="images/road-preview.jpg" data-animated="images/road-preview.gif">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Nobody Here</div>
+                    <a href="road.html" class="launch-btn" target="_blank">LAUNCH</a>
+                </div>
             </div>
         </div>
-        <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
-            <div class="card-image">
-                <img src="images/liquid-preview.jpg" alt="Smooth Heightmap Preview" 
-                     data-static="images/liquid-preview.jpg" data-animated="images/liquid-preview.gif">
-            </div>
-            <div class="card-content">
-                <div class="card-title">Liquid Surface</div>
-                <a href="smooth.html" class="launch-btn" target="_blank">LAUNCH</a>
+        <div class="column">
+            <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
+                <div class="card-image">
+                    <img src="images/liquid-preview.jpg" alt="Smooth Heightmap Preview" 
+                         data-static="images/liquid-preview.jpg" data-animated="images/liquid-preview.gif">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Liquid Surface</div>
+                    <a href="smooth.html" class="launch-btn" target="_blank">LAUNCH</a>
+                </div>
             </div>
         </div>
-        <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
-            <div class="card-image">
-                <img src="images/voxel-preview.jpg" alt="Voxel Light Preview" 
-                     data-static="images/voxel-preview.jpg" data-animated="images/voxel-preview.gif">
+        <div class="column">
+            <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
+                <div class="card-image">
+                    <img src="images/voxel-preview.jpg" alt="Voxel Light Preview" 
+                         data-static="images/voxel-preview.jpg" data-animated="images/voxel-preview.gif">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Voxel Light</div>
+                    <a href="voxel.html" class="launch-btn" target="_blank">LAUNCH</a>
+                </div>
             </div>
-            <div class="card-content">
-                <div class="card-title">Voxel Light</div>
-                <a href="voxel.html" class="launch-btn" target="_blank">LAUNCH</a>
-            </div>
-            
         </div>
-        
-        <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
-            <div class="card-image">
-                <img src="images/sphere-preview.jpg" alt="Particle Physics Preview" 
-                     data-static="images/sphere-preview.jpg" data-animated="images/sphere-preview.gif">
+        <div class="column">
+            <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
+                <div class="card-image">
+                    <img src="images/sphere-preview.jpg" alt="Particle Physics Preview" 
+                         data-static="images/sphere-preview.jpg" data-animated="images/sphere-preview.gif">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">WIP Particle Physics</div>
+                    <a href="sphere.html" class="launch-btn" target="_blank">LAUNCH</a>
+                </div>
             </div>
-            <div class="card-content">
-                <div class="card-title">WIP Particle Physics</div>
-                <a href="sphere.html" class="launch-btn" target="_blank">LAUNCH</a>
-            </div>
-            
         </div>
     </div>
-
     <script>
         function playGif(card) {
             const img = card.querySelector('img');
