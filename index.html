@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RPN City</title>
-    <link rel="icon" href="images\favicon.ico" type="image/x-icon">
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -23,6 +23,7 @@
             width: 200px; /* Adjust size as needed */
             height: auto;
             margin-bottom: 10px;
+            cursor: pointer; /* Add cursor pointer to indicate it's clickable */
         }
         .header-title {
             font-size: 32px;
@@ -119,12 +120,25 @@
                 max-width: 100%;
             }
         }
+
+        /* Add CSS for 3D spinning animation */
+        @keyframes spin3D {
+            from {
+                transform: rotateY(0deg);
+            }
+            to {
+                transform: rotateY(360deg);
+            }
+        }
+
+        .spin-animation {
+            animation: spin3D 1s;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <img src="images/logo.png" alt="RPN City Logo">
-     
+        <img src="images/logo.png" alt="RPN City Logo" id="logo">
     </div>
     <div class="card-container">
         <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
@@ -188,6 +202,14 @@
             const img = card.querySelector('img');
             img.src = img.getAttribute('data-static');
         }
+
+        // Add JavaScript for 3D spinning animation
+        document.getElementById('logo').addEventListener('click', function() {
+            this.classList.add('spin-animation');
+            this.addEventListener('animationend', function() {
+                this.classList.remove('spin-animation');
+            }, { once: true });
+        });
     </script>
 </body>
 </html>
