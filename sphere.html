@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WIP Particle Physics Simulator</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>Options</h3>
+        <p>Num. particles: <span id="particleCount">0</span></p>
+        <p>FPS: <span id="fps">0</span></p>
+        <button id="emitParticles">Emit Particles</button>
+        <button id="pauseSim">Pause Sim</button>
+        <button id="resetSim">Reset Sim</button>
+        <button id="drainToggle">Toggle Drain</button>
+        <br>
+        <label>
+            <input type="checkbox" id="autoEmit"> Auto emit particles
+        </label>
+        <br>
+        <label>
+            <input type="checkbox" id="mouseInteraction"> Emit particles on mouse
+        </label>
+        <br>
+        <label>
+            <input type="checkbox" id="windToggle"> Wind force
+        </label>
+        <p>Camera Controls: W,A,S,D (Move), Spacebar,Shift (Up/Down), Arrow Keys (Rotate)</p>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Three.js setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create a sphere to contain the fluid
+        const sphereRadius = 5;
+        const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 32, 32, 0, Math.PI * 2, 0, Math.PI * 2);
+        const sphereMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xcccccc, 
+            wireframe: true, 
+            opacity: 0.1, 
+            transparent: true 
+        });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        scene.add(sphere);
+
+        // Create a drain hole
+        const drainRadius = 0.5;
+        const drainGeometry = new THREE.CircleGeometry(drainRadius, 32);
+        const drainMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const drain = new THREE.Mesh(drainGeometry, drainMaterial);
+        drain.position.y = -sphereRadius;
+        drain.rotation.x = Math.PI / 2;
+        sphere.add(drain);
+        let isDraining = false;
+
+        // SPH parameters
+        const h = 0.1; // Smoothing length
+        const mass = 1;
+        const restDensity = 1000;
+        const stiffness = .09;
+        const viscosity = 0.1;
+        const dt = 0.016 * 20; // Time step (40 times faster)
+        const gravity = 9.8 * 100; // Increased gravity
+
+        // Wind force parameters
+        const windStrength = 50; // Increased wind strength significantly
+
+        // Whirlpool parameters
+        const whirlpoolStrength = 5;
+        const whirlpoolRadius = sphereRadius * 0.5;
+
+        // Particle system
+        const particles = [];
+        const particleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+        const particleMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                color: { value: new THREE.Color(0x88ccff) },
+                glowColor: { value: new THREE.Color(0x00ffff) }
+            },
+            vertexShader: `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color;
+                uniform vec3 glowColor;
+                varying vec3 vNormal;
+                void main() {
+                    float intensity = pow(0.7 - dot(vNormal, vec3(0, 0, 1.0)), 2.0);
+                    gl_FragColor = vec4(mix(color, glowColor, intensity), 1.0);
+                }
+            `,
+            transparent: true
+        });
+
+        // Helper functions
+        function createParticle(position) {
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial.clone());
+            particle.position.copy(position);
+            particle.userData = {
+                velocity: new THREE.Vector3(),
+                force: new THREE.Vector3(),
+                density: 0,
+                pressure: 0
+            };
+            particle.material.uniforms.color.value.setHSL(Math.random(), 1, 0.5);
+            particle.material.uniforms.glowColor.value.setHSL(Math.random(), 1, 0.7);
+            scene.add(particle);
+            return particle;
+        }
+
+        function emitParticles(count) {
+            for (let i = 0; i < count; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = sphereRadius * 0.9; // Emit particles close to the sphere surface
+                const x = r * Math.sin(phi) * Math.cos(theta);
+                const y = r * Math.sin(phi) * Math.sin(theta);
+                const z = r * Math.cos(phi);
+                particles.push(createParticle(new THREE.Vector3(x, y, z)));
+            }
+        }
+
+        function applyWindForce(particle) {
+            if (!document.getElementById('windToggle').checked) return;
+
+            // Apply a strong upward force
+            const windForce = new THREE.Vector3(0, windStrength, 0);
+            particle.userData.force.add(windForce);
+        }
+
+        function updateParticles() {
+            // Compute density and pressure
+            for (const particle of particles) {
+                particle.userData.density = 0;
+                for (const neighbor of particles) {
+                    const r = particle.position.distanceTo(neighbor.position);
+                    if (r < h) {
+                        particle.userData.density += mass * (315 / (64 * Math.PI * Math.pow(h, 9))) * Math.pow(h * h - r * r, 3);
+                    }
+                }
+                particle.userData.pressure = stiffness * (particle.userData.density - restDensity);
+            }
+
+            // Compute forces
+            for (const particle of particles) {
+                particle.userData.force.set(0, 0, 0);
+                for (const neighbor of particles) {
+                    if (particle !== neighbor) {
+                        const r = particle.position.distanceTo(neighbor.position);
+                        if (r < h) {
+                            // Pressure force
+                            const pressureForce = new THREE.Vector3().subVectors(neighbor.position, particle.position);
+                            pressureForce.multiplyScalar(-1 * mass * (particle.userData.pressure + neighbor.userData.pressure) / (2 * neighbor.userData.density) * (45 / (Math.PI * Math.pow(h, 6))) * Math.pow(h - r, 2));
+                            particle.userData.force.add(pressureForce);
+
+                            // Viscosity force
+                            const viscosityForce = new THREE.Vector3().subVectors(neighbor.userData.velocity, particle.userData.velocity);
+                            viscosityForce.multiplyScalar(viscosity * mass * (45 / (Math.PI * Math.pow(h, 6))) * (h - r));
+                            particle.userData.force.add(viscosityForce);
+                        }
+                    }
+                }
+                
+                // Gravity (tangential to sphere surface)
+                const gravityForce = new THREE.Vector3(0, -gravity * mass, 0);
+                const tangentialGravity = new THREE.Vector3().copy(gravityForce).projectOnPlane(particle.position.clone().normalize());
+                particle.userData.force.add(tangentialGravity);
+
+                // Apply wind force
+                applyWindForce(particle);
+
+                // Apply whirlpool effect when drain is open
+                if (isDraining) {
+                    const drainCenter = new THREE.Vector3(0, -sphereRadius, 0);
+                    const toCenter = new THREE.Vector3().subVectors(drainCenter, particle.position);
+                    const distance = toCenter.length();
+
+                    if (distance < whirlpoolRadius) {
+                        const tangent = new THREE.Vector3(-toCenter.z, 0, toCenter.x).normalize();
+                        const whirlpoolForce = tangent.multiplyScalar(whirlpoolStrength * (1 - distance / whirlpoolRadius));
+                        particle.userData.force.add(whirlpoolForce);
+                    }
+                }
+            }
+
+            // Update positions and velocities
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                particle.userData.velocity.addScaledVector(particle.userData.force.divideScalar(particle.userData.density), dt);
+                const newPosition = particle.position.clone().addScaledVector(particle.userData.velocity, dt);
+
+                // Check if the particle is inside the sphere
+                if (newPosition.length() <= sphereRadius) {
+                    particle.position.copy(newPosition);
+                } else {
+                    // If outside, project the particle back onto the sphere surface
+                    particle.position.copy(newPosition.normalize().multiplyScalar(sphereRadius));
+                    
+                    // Reflect the velocity off the sphere surface
+                    const normal = particle.position.clone().normalize();
+                    particle.userData.velocity.reflect(normal);
+                    particle.userData.velocity.multiplyScalar(0.5**100); // Add some energy loss on collision
+                }
+
+                // Apply friction to simulate movement along the sphere
+                const friction = 0.99;
+                particle.userData.velocity.multiplyScalar(friction);
+
+                // Check if particle should be removed through the drain
+                if (isDraining && particle.position.y < -sphereRadius + drainRadius &&
+                    Math.sqrt(particle.position.x * particle.position.x + particle.position.z * particle.position.z) < drainRadius) {
+                    scene.remove(particle);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        // Camera setup
+        camera.position.z = 10;
+
+        // Camera movement
+        const cameraSpeed = 0.1;
+        const cameraRotationSpeed = 0.02;
+        const keysPressed = {};
+
+        document.addEventListener('keydown', (event) => { keysPressed[event.key.toLowerCase()] = true; });
+        document.addEventListener('keyup', (event) => { keysPressed[event.key.toLowerCase()] = false; });
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                keyState[e.code] = true;
+                if (e.code === 'Space' || e.code === 'ShiftLeft') {
+                    e.preventDefault();
+                }
+            });
+            document.addEventListener('keyup', (e) => keyState[e.code] = false);
+        }
+        function updateCamera() {
+            if (keysPressed['w']) camera.translateZ(-cameraSpeed);
+            if (keysPressed['s']) camera.translateZ(cameraSpeed);
+            if (keysPressed['a']) camera.translateX(-cameraSpeed);
+            if (keysPressed['d']) camera.translateX(cameraSpeed);
+            if (keysPressed[' ']) camera.translateY(cameraSpeed);
+            if (keysPressed['shift']) camera.translateY(-cameraSpeed);
+            if (keysPressed['arrowup']) camera.rotateX(-cameraRotationSpeed);
+            if (keysPressed['arrowdown']) camera.rotateX(cameraRotationSpeed);
+            if (keysPressed['arrowleft']) camera.rotateY(-cameraRotationSpeed);
+            if (keysPressed['arrowright']) camera.rotateY(cameraRotationSpeed);
+        }
+
+        // Animation loop
+        let lastTime = performance.now();
+        let paused = false;
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            if (!paused) {
+                if (document.getElementById('autoEmit').checked) {
+                    emitParticles(5);
+                }
+
+                updateParticles();
+                updateCamera();
+            }
+
+            renderer.render(scene, camera);
+
+            // Update UI
+            document.getElementById('particleCount').textContent = particles.length;
+            document.getElementById('fps').textContent = (1 / deltaTime).toFixed(2);
+        }
+
+        animate();
+
+        // UI Event Listeners
+        document.getElementById('emitParticles').addEventListener('click', () => emitParticles(100));
+        document.getElementById('pauseSim').addEventListener('click', () => {
+            paused = !paused;
+            document.getElementById('pauseSim').textContent = paused ? 'Resume Sim' : 'Pause Sim';
+        });
+        document.getElementById('resetSim').addEventListener('click', () => {
+            particles.forEach(particle => scene.remove(particle));
+            particles.length = 0;
+        });
+        document.getElementById('drainToggle').addEventListener('click', () => {
+            isDraining = !isDraining;
+            document.getElementById('drainToggle').textContent = isDraining ? 'Close Drain' : 'Open Drain';
+            drain.material.color.setHex(isDraining ? 0xff0000 : 0x000000);
+        });
+
+        // Mouse interaction
+        const mouse = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(sphere);
+            if (intersects.length > 0) {
+                const intersectionPoint = intersects[0].point;
+                if (document.getElementById('mouseInteraction').checked && !paused) {
+                    emitParticles(1);
+                    particles[particles.length - 1].position.copy(intersectionPoint);
+                }
+            }
+        });
+
+        // Window resize handling
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
