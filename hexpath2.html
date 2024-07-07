@@ -56,20 +56,19 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            flex-direction: column; /* Make the content stack vertically */
         }
         #gameInfo {
-            position: absolute;
-            top: 2vh;
-            right: 2vw;
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
+            flex-direction: row; /* Align info boxes horizontally by default */
+            justify-content: center;
+            gap: 5vw;
+            margin-top: 2vh;
         }
         .info-box {
             border-radius: 10px;
             padding: 1vh 3vw;
             text-align: center;
-            margin-bottom: 2vh;
             transition: background-color 0.3s, color 0.3s;
         }
         .dark-mode .info-box {
@@ -95,9 +94,8 @@
             margin-top: 1vh;
         }
         #hexGrid {
-            position: absolute;
             width: 100%;
-            height: 100%;
+            flex-grow: 1; /* Allow the canvas to grow and fill available space */
         }
         .overlay {
             display: none;
@@ -202,19 +200,12 @@
         /* Responsive design for mobile */
         @media (max-width: 768px) {
             #gameInfo {
-                flex-direction: row;
-                bottom: 2vh;
-                top: auto;
-                right: 50%;
-                transform: translateX(50%);
+                flex-direction: column;
+                gap: 2vh;
+                margin-top: 2vh;
             }
             .info-box {
-                margin-bottom: 0;
-                margin-right: 2vw;
-                padding: 1vh 1vw;
-            }
-            .info-box:last-child {
-                margin-right: 0;
+                padding: 2vh 3vw;
             }
             .info-box p {
                 font-size: 2.5vh;
@@ -236,6 +227,7 @@
         <div style="width: 10vw;"></div>
     </div>
     <div id="gameContainer">
+        <canvas id="hexGrid"></canvas>
         <div id="gameInfo">
             <div class="info-box">
                 <p>Current</p>
@@ -246,7 +238,6 @@
                 <span id="goalValue">0</span>
             </div>
         </div>
-        <canvas id="hexGrid"></canvas>
         <div id="instructionsOverlay" class="overlay">
             <div class="overlay-content">
                 <img src="images/hexpath.png" alt="HexPath" style="width:20vw;height:20vw;">
@@ -309,11 +300,18 @@
         }
 
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - (window.innerHeight * 10 / 100); // Subtract banner height
+            const pixelRatio = window.devicePixelRatio || 1;
+            const width = window.innerWidth;
+            const height = window.innerHeight - (window.innerHeight * 10 / 100); // Subtract banner height
 
-            const containerWidth = canvas.width;
-            const containerHeight = canvas.height;
+            canvas.width = width * pixelRatio;
+            canvas.height = height * pixelRatio;
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+            ctx.scale(pixelRatio, pixelRatio);
+
+            const containerWidth = width;
+            const containerHeight = height;
 
             const horizontalHexCount = gridSize * 2 - 1;
             const verticalHexCount = gridSize * 2 - 1;
@@ -336,8 +334,8 @@
         }
 
         function updateGridPositions() {
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
+            const centerX = canvas.width / (2 * (window.devicePixelRatio || 1));
+            const centerY = canvas.height / (2 * (window.devicePixelRatio || 1));
             for (let hex of grid) {
                 hex.x = centerX + hexWidth * 3 / 4 * hex.q;
                 hex.y = centerY + hexHeight * (hex.r + hex.q / 2);
@@ -446,8 +444,8 @@
 
         function initializeGrid() {
             grid = [];
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
+            const centerX = canvas.width / (2 * (window.devicePixelRatio || 1));
+            const centerY = canvas.height / (2 * (window.devicePixelRatio || 1));
             for (let q = -gridSize + 1; q < gridSize; q++) {
                 for (let r = -gridSize + 1; r < gridSize; r++) {
                     if (Math.abs(q + r) < gridSize) {
