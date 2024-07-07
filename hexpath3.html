@@ -264,6 +264,8 @@
         let dailyGameCompleted = false;
         let dailySeed = null;
         let streak = 0;
+        let lastTouchTime = 0;
+        let touchTimeout;
 
         // Initialization
         function initializeGame() {
@@ -272,7 +274,8 @@
             
             window.addEventListener('resize', resizeCanvas);
             canvas.addEventListener('click', handleClick);
-            canvas.addEventListener('touchstart', handleClick); // Add touch event listener
+            canvas.addEventListener('touchstart', handleClick, { passive: false });
+            canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
             
             document.getElementById('playAgainButton').addEventListener('click', handlePlayAgain);
             document.getElementById('closeDailyModalButton').addEventListener('click', hideDailyModal);
@@ -281,6 +284,7 @@
             document.getElementById('closeInstructionsButton').addEventListener('click', hideInstructions);
             document.getElementById('modeToggleButton').addEventListener('click', toggleGameMode);
 
+            optimizeForMobile();
             loadStreak();
             startGame();
         }
@@ -291,46 +295,21 @@
             const width = window.innerWidth;
             const height = window.innerHeight;
 
-            // Calculate the height of the banner
             const banner = document.getElementById('banner');
             const bannerHeight = banner.offsetHeight;
 
-            // Adjust the canvas height to account for the banner
             const canvasHeight = height - bannerHeight;
 
             canvas.width = width * pixelRatio;
             canvas.height = canvasHeight * pixelRatio;
             canvas.style.width = `${width}px`;
             canvas.style.height = `${canvasHeight}px`;
+            
             ctx.scale(pixelRatio, pixelRatio);
 
-            const containerWidth = width;
-            const containerHeight = canvasHeight;
-
-            const horizontalHexCount = GRID_SIZE * 2 - 1;
-            const verticalHexCount = GRID_SIZE * 2 - 1;
-
-            // Calculate the aspect ratio of the grid
-            const gridAspectRatio = (horizontalHexCount * Math.sqrt(3) / 2) / verticalHexCount;
-            
-            // Calculate the aspect ratio of the container
-            const containerAspectRatio = containerWidth / containerHeight;
-
-            let maxHexWidth, maxHexHeight;
-
-            if (containerAspectRatio > gridAspectRatio) {
-                // Container is wider than the grid's ideal aspect ratio
-                maxHexHeight = containerHeight / (verticalHexCount * Math.sqrt(3) / 2);
-                maxHexWidth = maxHexHeight * 2 / Math.sqrt(3);
-            } else {
-                // Container is taller than the grid's ideal aspect ratio
-                maxHexWidth = containerWidth / (horizontalHexCount * 3/4 + 0.25);
-                maxHexHeight = maxHexWidth * Math.sqrt(3) / 2;
-            }
-
-            // Apply a scale factor to leave some margin
-            const scaleFactor = .98;
-            hexRadius = Math.min(maxHexWidth, maxHexHeight) / 2 * scaleFactor;
+            // Adjust hexagon size based on screen size
+            const minDimension = Math.min(width, canvasHeight);
+            hexRadius = minDimension / (GRID_SIZE * 2.5);
             hexHeight = hexRadius * Math.sqrt(3);
             hexWidth = hexRadius * 2;
 
@@ -342,15 +321,12 @@
         }
 
         function updateGridPositions() {
-            const pixelRatio = window.devicePixelRatio || 1;
-            const centerX = canvas.width / (2 * pixelRatio);
-            const centerY = canvas.height / (2 * pixelRatio);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
             
-            // Calculate the total width and height of the grid
-            const gridWidth = (GRID_SIZE -5) * hexWidth * 3/4;
-            const gridHeight = (GRID_SIZE-5) * hexHeight;
+            const gridWidth = (GRID_SIZE - 1) * hexWidth * 3/4;
+            const gridHeight = (GRID_SIZE - 1) * hexHeight;
             
-            // Calculate the offsets to center the grid
             const offsetX = centerX - gridWidth / 2;
             const offsetY = centerY - gridHeight / 2;
 
@@ -430,8 +406,8 @@
         // Game logic functions
         function initializeGrid() {
             grid = [];
-            const centerX = canvas.width / (2 * (window.devicePixelRatio || 1));
-            const centerY = canvas.height / (2 * (window.devicePixelRatio || 1));
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
             for (let q = -GRID_SIZE + 1; q < GRID_SIZE; q++) {
                 for (let r = -GRID_SIZE + 1; r < GRID_SIZE; r++) {
                     if (Math.abs(q + r) < GRID_SIZE) {
@@ -525,24 +501,40 @@
         }
 
         function handleClick(event) {
+            event.preventDefault(); // Prevent default behavior for both touch and click events
+            
             if (animationInProgress || (dailyGameCompleted && !isUnlimitedMode)) return;
 
             let x, y;
             if (event.type === 'touchstart') {
-                event.preventDefault(); // Prevent zooming on double-tap
-                const touch = event.touches[0];
-                x = touch.clientX;
-                y = touch.clientY;
-            } else {
-                x = event.clientX;
-                y = event.clientY;
-            }
+                // Prevent double-tap zooming
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTouchTime;
+                clearTimeout(touchTimeout);
 
+                if (tapLength < 500 && tapLength > 0) {
+                    event.preventDefault();
+                    return false;
+                }
+
+                lastTouchTime = currentTime;
+
+                // Delay the touch event to prevent unintended double clicks
+                touchTimeout = setTimeout(() => {
+                    const touch = event.touches[0];
+                    handleInteraction(touch.clientX, touch.clientY);
+                }, 100);
+            } else {
+                handleInteraction(event.clientX, event.clientY);
+            }
+        }
+
+        function handleInteraction(clientX, clientY) {
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
-            x = (x - rect.left) * scaleX;
-            y = (y - rect.top) * scaleY;
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
 
             const clickedHex = grid.find(hex => {
                 const dx = x - hex.x;
@@ -818,8 +810,42 @@
             }
         }
 
+        function optimizeForMobile() {
+            // Reduce animation duration on mobile devices
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (isMobile) {
+                // Reduce the duration of the animateMove function
+                animateMove = (from, to, callback) => {
+                    const duration = 150; // Reduced from 300
+                    const startTime = performance.now();
+
+                    function animate(currentTime) {
+                        const elapsedTime = currentTime - startTime;
+                        const progress = Math.min(elapsedTime / duration, 1);
+
+                        const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+                        const x = from.x + (to.x - from.x) * easeProgress;
+                        const y = from.y + (to.y - from.y) * easeProgress;
+
+                        drawGrid();
+                        drawPlayerCircle(x, y);
+
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            callback();
+                        }
+                    }
+
+                    requestAnimationFrame(animate);
+                };
+            }
+        }
+
         // Initialize the game
         initializeGame();
     </script>
 </body>
 </html>
+                `
