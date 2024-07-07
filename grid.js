@@ -43,15 +43,15 @@ function updateGridPositions() {
     const centerX = canvas.width / (2 * window.devicePixelRatio);
     const centerY = (canvas.height / (2 * window.devicePixelRatio)) + (hexHeight * 0.5);
 
-    const gridWidth = (GRID_SIZE-4) * hexWidth * 3/4;
-    const gridHeight = (GRID_SIZE-1.8) * hexHeight / 2;
+    const gridWidth = (GRID_SIZE - 4) * hexWidth * 3 / 4;
+    const gridHeight = (GRID_SIZE - 1.8) * hexHeight / 2;
 
     const offsetX = centerX - gridWidth / 2;
     const offsetY = centerY - gridHeight / 2;
 
     for (let hex of grid) {
-        hex.x = offsetX + hexWidth * 3/4 * hex.q;
-        hex.y = offsetY + hexHeight * (hex.r + hex.q/2);
+        hex.x = offsetX + hexWidth * 3 / 4 * hex.q;
+        hex.y = offsetY + hexHeight * (hex.r + hex.q / 2);
     }
 }
 
@@ -121,3 +121,62 @@ function drawGrid() {
         drawHexagon(hex.x, hex.y, hex.values, isVisited, isGoal, isAdjacent);
     }
 }
+
+function handleInteraction(clientX, clientY) {
+    if (animationInProgress || (dailyGameCompleted && !isUnlimitedMode)) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const pixelRatio = window.devicePixelRatio || 1;
+    
+    // Scale the touch coordinates to match the canvas coordinate system
+    const x = (clientX - rect.left) * (canvas.width / rect.width) / pixelRatio;
+    const y = (clientY - rect.top) * (canvas.height / rect.height) / pixelRatio;
+
+    const clickedHex = grid.find(hex => {
+        const dx = x - hex.x;
+        const dy = y - hex.y;
+        // Use the actual hexRadius for precise detection
+        return (dx * dx + dy * dy) <= (hexRadius * hexRadius);
+    });
+
+    if (clickedHex) {
+        const isAdjacent = getAdjacentHexagons(currentPosition).includes(clickedHex);
+        const isGoal = clickedHex === goalPosition;
+
+        if (isAdjacent || isGoal) {
+            animationInProgress = true;
+            animateMove(currentPosition, clickedHex, () => {
+                processMove(clickedHex);
+            });
+        }
+    }
+}
+
+// Function to reinitialize canvas event listeners
+function initializeCanvasEvents() {
+    canvas.removeEventListener('click', handleInteraction);
+    canvas.removeEventListener('touchstart', handleInteraction);
+    canvas.removeEventListener('touchmove', preventDefaultScroll);
+
+    canvas.addEventListener('click', (event) => {
+        event.preventDefault();
+        handleInteraction(event.clientX, event.clientY);
+    }, { passive: false });
+
+    canvas.addEventListener('touchstart', (event) => {
+        event.preventDefault();
+        const touch = event.touches[0];
+        handleInteraction(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', preventDefaultScroll, { passive: false });
+}
+
+function preventDefaultScroll(event) {
+    event.preventDefault();
+}
+
+// Initial setup
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+initializeCanvasEvents();

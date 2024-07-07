@@ -25,9 +25,7 @@ function initializeGame() {
     ctx = canvas.getContext('2d');
 
     window.addEventListener('resize', resizeCanvas);
-    canvas.addEventListener('click', handleClick);
-    canvas.addEventListener('touchstart', handleClick, { passive: false });
-    canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    initializeCanvasEvents();
 
     document.getElementById('playAgainButton').addEventListener('click', handlePlayAgain);
     document.getElementById('closeDailyModalButton').addEventListener('click', hideDailyModal);
@@ -162,32 +160,6 @@ function handleClick(event) {
     }
 }
 
-function handleInteraction(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-
-    const clickedHex = grid.find(hex => {
-        const dx = x - hex.x;
-        const dy = y - hex.y;
-        return (dx * dx + dy * dy) <= (hexRadius * hexRadius);
-    });
-
-    if (clickedHex) {
-        const isAdjacent = getAdjacentHexagons(currentPosition).includes(clickedHex);
-        const isGoal = clickedHex === goalPosition;
-
-        if (isAdjacent || isGoal) {
-            animationInProgress = true;
-            animateMove(currentPosition, clickedHex, () => {
-                processMove(clickedHex);
-            });
-        }
-    }
-}
-
 function processMove(clickedHex) {
     if (clickedHex === goalPosition) {
         if (currentValue === goalValue) {
@@ -270,6 +242,7 @@ function startGame() {
     }
 
     resizeCanvas();
+    initializeCanvasEvents();  // Ensure event listeners are re-initialized after game start/reset
 }
 
 function resetGame() {
@@ -289,6 +262,8 @@ function resetGame() {
     }
 
     initializeGrid();
+    resizeCanvas();
+    initializeCanvasEvents(); // Re-initialize event listeners to ensure they work correctly
 }
 
 function endGame(message) {
