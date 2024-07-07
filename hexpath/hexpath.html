@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HexPath</title>
+    <link rel="icon" sizes="16x16" href="images/favicon2.ico" type="image/x-icon">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-mode">
+    <div id="banner">
+        <div id="buttonContainer">
+            <button id="howToPlayButton" class="button">❔</button>
+            <button id="toggleModeButton" class="button">🌞</button>
+            <button id="modeToggleButton" class="button">♾️</button>
+        </div>
+        <img id="logo" src="images/hexpath_text.png" alt="HexPath">
+        <div style="width: 33%;"></div> <!-- This empty div helps center the logo -->
+    </div>
+    <div id="gameContainer">
+        <div id="counters">
+            <div class="counter">current: <span id="currentValue">3</span></div>
+            <div class="counter">goal: <span id="goalValue">0</span></div>
+        </div>
+        <canvas id="hexGrid"></canvas>
+
+        <div id="instructionsOverlay" class="overlay">
+            <div class="overlay-content">
+                <img src="images/hexpath.png" alt="HexPath" style="width:10vw;height:10vw;">
+                <h2>How to Play HexPath</h2>
+                <p>1. Start from the bottom hex with a value of 3.</p>
+                <p>2. Click adjacent hexes to move.</p>
+                <p>3. Each move adds or subtracts the value on the connecting side.</p>
+                <p>4. Reach the top hex with exactly the goal value to win.</p>
+                <p>5. Game over if your value reaches 0 or below, if there are no valid moves, or if you reach the goal without matching the goal value.</p>
+                <button id="closeInstructionsButton" class="button">Close</button>
+            </div>
+        </div>
+        <div id="unlimitedModalOverlay">
+            <div class="modal-content">
+                <div id="unlimitedModalMessage" class="modalMessage"></div>
+                <button id="playAgainButton" class="button">Play Again</button>
+            </div>
+        </div>
+        <div id="dailyModalOverlay">
+            <div class="modal-content">
+                <div id="dailyModalMessage" class="modalMessage"></div>
+                <div id="streakCount"></div>
+                <div>Next challenge in:</div>
+                <div id="timerDisplay"></div>
+                <button id="closeDailyModalButton" class="button">Close</button>
+            </div>
+        </div>
+    </div>
+    <script src="grid.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
