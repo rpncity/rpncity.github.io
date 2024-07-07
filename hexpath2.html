@@ -23,11 +23,11 @@
         }
         #banner {
             width: 100%;
-            height: 80px;
+            height: 10vh;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 20px;
+            padding: 0 2vw;
             box-sizing: border-box;
             transition: background-color 0.3s, color 0.3s;
             border-bottom: 1px solid #8a8a8a;
@@ -39,36 +39,37 @@
             background-color: #d0d0d0;
         }
         #logo {
-            height: 50px;
-            margin: 0;
+            height: 10vh;
+            margin-bottom: 0;
+            margin-center: auto;
         }
         #buttonContainer {
             display: flex;
             flex-direction: row;
             align-items: center;
-            gap: 10px;
+            gap: 2vw;
         }
         #gameContainer {
             position: relative;
             width: 100%;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 10vh);
             display: flex;
             justify-content: center;
             align-items: center;
         }
         #gameInfo {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 2vh;
+            right: 2vw;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
         }
         .info-box {
             border-radius: 10px;
-            padding: 10px 20px;
+            padding: 1vh 3vw;
             text-align: center;
-            margin-bottom: 10px; 
+            margin-bottom: 2vh;
             transition: background-color 0.3s, color 0.3s;
         }
         .dark-mode .info-box {
@@ -79,7 +80,7 @@
         }
         .info-box p {
             margin: 0;
-            font-size: 12px;
+            font-size: 2vh;
         }
         .dark-mode .info-box p {
             color: #888;
@@ -89,9 +90,9 @@
         }
         .info-box span {
             display: block;
-            font-size: 30px;
+            font-size: 4vh;
             font-weight: bold;
-            margin-top: 10px;
+            margin-top: 1vh;
         }
         #hexGrid {
             position: absolute;
@@ -112,9 +113,9 @@
         }
         .overlay-content {
             border-radius: 10px;
-            padding: 20px;
+            padding: 4vh 4vw;
             text-align: center;
-            max-width: 90%;
+            max-width: 80%;
             transform: scale(0.8);
             transition: transform 0.5s ease-in-out;
         }
@@ -140,18 +141,18 @@
             transform: scale(1);
         }
         .overlay-message {
-            font-size: 24px;
-            margin-bottom: 20px;
+            font-size: 3vh;
+            margin-bottom: 4vh;
         }
         .button {
             background-color: #c00000;
             border: none;
             color: white;
-            padding: 10px 10px;
+            padding: 2vh 2vw;
             text-align: center;
             text-decoration: none;
             display: inline-block;
-            font-size: 20px;
+            font-size: 3vh;
             margin: 0;
             cursor: pointer;
             border-radius: 5px;
@@ -174,10 +175,10 @@
         }
         .modal-content {
             background-color: #f4f4f4;
-            padding: 20px;
+            padding: 4vh 4vw;
             border-radius: 5px;
             text-align: center;
-            max-width: 90%;
+            max-width: 80%;
             color: #333;
         }
         .dark-mode .modal-content {
@@ -185,30 +186,30 @@
             color: #f4f4f4;
         }
         .modalMessage {
-            font-size: 24px;
-            margin-bottom: 20px;
+            font-size: 3vh;
+            margin-bottom: 4vh;
         }
         #streakCount {
-            font-size: 18px;
-            margin-bottom: 10px;
+            font-size: 2.5vh;
+            margin-bottom: 2vh;
         }
         #timerDisplay {
-            font-size: 36px;
+            font-size: 5vh;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 4vh;
         }
     </style>
 </head>
 <body class="dark-mode">
-    <div id="banner">
-        <div id="buttonContainer">
-            <button id="howToPlayButton" class="button">❔</button>
-            <button id="toggleModeButton" class="button">🌞</button>
-            <button id="modeToggleButton" class="button">♾️</button>
-        </div>
-        <img id="logo" src="images/hexpath_text.png" alt="HexPath">
-        <div style="width: 150px;"></div>
+   <div id="banner">
+    <div id="buttonContainer">
+        <button id="howToPlayButton" class="button">❔</button>
+        <button id="toggleModeButton" class="button">🌞</button>
+        <button id="modeToggleButton" class="button">♾️</button>
     </div>
+    <img id="logo" src="images/hexpath_text.png" alt="HexPath">
+    <div style="width: 10vw;"></div>
+</div>
     <div id="gameContainer">
         <div id="gameInfo">
             <div class="info-box">
@@ -223,7 +224,7 @@
         <canvas id="hexGrid"></canvas>
         <div id="instructionsOverlay" class="overlay">
             <div class="overlay-content">
-                <img src="images/hexpath.png" alt="HexPath" style="width:128px;height:128px;">
+                <img src="images/hexpath.png" alt="HexPath" style="width:20vw;height:20vw;">
                 <h2>How to Play HexPath</h2>
                 <p>1. Start from the bottom hex with a value of 3.</p>
                 <p>2. Click adjacent hexes to move.</p>
@@ -284,21 +285,21 @@
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - 80; // Subtract banner height
+            canvas.height = window.innerHeight - 10 * window.innerHeight / 100; // Subtract banner height
 
             const containerWidth = canvas.width;
             const containerHeight = canvas.height;
-
+            
             const horizontalHexCount = gridSize * 2 - 1;
             const verticalHexCount = gridSize * 2 - 1;
-
+            
             const maxHexWidth = containerWidth / (horizontalHexCount + 0.5);
             const maxHexHeight = containerHeight / (verticalHexCount * Math.sqrt(3) / 1.9 + 0.5);
-
+            
             hexRadius = Math.min(maxHexWidth / 2, maxHexHeight / Math.sqrt(3)) * 0.95;
             hexHeight = hexRadius * Math.sqrt(3);
             hexWidth = hexRadius * 2;
-
+            
             if (!gameInitialized) {
                 initializeGrid();
                 gameInitialized = true;
@@ -331,7 +332,7 @@
                 }
             }
             ctx.closePath();
-
+            
             if (isVisited) {
                 ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(64, 64, 64, 0.8)' : 'rgba(192, 192, 192, 0.8)';
             } else if (isGoal) {
@@ -342,16 +343,16 @@
                 ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(139, 0, 0, 0.8)' : 'rgba(255, 100, 100, 0.8)';
             }
             ctx.fill();
-
+            
             ctx.strokeStyle = document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
             ctx.lineWidth = 2;
             ctx.stroke();
 
             ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)';
-            ctx.font = `${isGoal ? 16 : 14}px Arial`;
+            ctx.font = `${isGoal ? 2 : 2.5}vh Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-
+            
             if (isGoal) {
                 ctx.fillText("GOAL", x, y);
             } else if (!isVisited) {
@@ -393,14 +394,14 @@
         function loadGameState() {
             const savedState = localStorage.getItem('dailyGameState');
             const savedDate = localStorage.getItem('dailyGameDate');
-
+            
             if (savedState && savedDate === new Date().toDateString()) {
                 const gameState = JSON.parse(savedState);
                 currentValue = gameState.currentValue;
                 currentPosition = grid.find(hex => hex.q === gameState.currentPosition.q && hex.r === gameState.currentPosition.r);
                 visitedHexagons = new Set(gameState.visitedHexagons);
                 goalValue = gameState.goalValue;
-
+                
                 gameState.grid.forEach(savedHex => {
                     const hex = grid.find(h => h.q === savedHex.q && h.r === savedHex.r);
                     if (hex) {
@@ -410,7 +411,7 @@
 
                 document.getElementById('currentValue').textContent = currentValue;
                 document.getElementById('goalValue').textContent = goalValue;
-
+                
                 drawGrid();
                 drawPlayerCircle(currentPosition.x, currentPosition.y);
                 return true;
@@ -435,7 +436,7 @@
 
             currentPosition = grid.find(hex => hex.q === 0 && hex.r === gridSize - 1);
             goalPosition = grid.find(hex => hex.q === 0 && hex.r === -gridSize + 1);
-
+            
             if (!isUnlimitedMode && loadGameState()) {
                 return;
             }
@@ -444,7 +445,7 @@
             let randomFunc = () => seededRandom(seed++);
 
             const path = generateSolvablePath(randomFunc);
-
+            
             for (let hex of grid) {
                 if (!path.includes(hex) && hex !== goalPosition) {
                     hex.values = hex.values.map(() => Math.floor(randomFunc() * 7) - 3);
@@ -464,39 +465,39 @@
             const path = [currentPosition];
             let currentHex = currentPosition;
             let pathSum = 0;
-
+            
             goalValue = Math.floor(randomFunc() * 20) + 1;
             document.getElementById('goalValue').textContent = goalValue;
 
             while (currentHex !== goalPosition) {
                 const neighbors = getAdjacentHexagons(currentHex);
                 const nextHex = neighbors[Math.floor(randomFunc() * neighbors.length)];
-
+                
                 if (!nextHex) break;
-
+                
                 const remainingSteps = Math.abs(goalPosition.q - nextHex.q) + Math.abs(goalPosition.r - nextHex.r);
                 const targetSum = goalValue * (path.length / (path.length + remainingSteps));
-
+                
                 const idealValue = targetSum - pathSum;
                 const minValue = Math.max(Math.floor(idealValue - 1), -3);
                 const maxValue = Math.min(Math.ceil(idealValue + 1), 3);
                 const value = Math.floor(randomFunc() * (maxValue - minValue + 1)) + minValue;
-
+                
                 const direction = getDirection(currentHex, nextHex);
                 nextHex.values[(direction + 3) % 6] = value;
-
+                
                 pathSum += value;
                 path.push(nextHex);
                 currentHex = nextHex;
             }
-
+            
             if (path.length > 1) {
                 const lastHex = path[path.length - 2];
                 const direction = getDirection(lastHex, goalPosition);
                 lastHex.values[direction] += goalValue - pathSum;
                 lastHex.values[direction] = Math.max(-3, Math.min(3, lastHex.values[direction]));
             }
-
+            
             return path;
         }
 
@@ -540,7 +541,7 @@
             function animate(currentTime) {
                 const elapsedTime = currentTime - startTime;
                 const progress = Math.min(elapsedTime / duration, 1);
-
+                
                 const easeProgress = 1 - Math.pow(1 - progress, 3);
 
                 const x = from.x + (to.x - from.x) * easeProgress;
@@ -608,7 +609,7 @@
             animationInProgress = false;
             drawGrid();
             drawPlayerCircle(currentPosition.x, currentPosition.y);
-
+            
             if (isUnlimitedMode) {
                 showUnlimitedModal(message);
             } else {
@@ -683,10 +684,10 @@
             document.getElementById('currentValue').textContent = currentValue;
             document.getElementById('unlimitedModalOverlay').style.display = 'none';
             document.getElementById('dailyModalOverlay').style.display = 'none';
-
+            
             dailyGameCompleted = false;
             dailyGamePlayed = false;
-
+            
             if (!isUnlimitedMode) {
                 localStorage.setItem('dailyGameCompleted', 'false');
                 localStorage.setItem('dailyGameDate', today);
