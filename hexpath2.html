@@ -198,18 +198,43 @@
             font-weight: bold;
             margin-bottom: 4vh;
         }
+
+        /* Responsive design for mobile */
+        @media (max-width: 768px) {
+            #gameInfo {
+                flex-direction: row;
+                bottom: 2vh;
+                top: auto;
+                right: 50%;
+                transform: translateX(50%);
+            }
+            .info-box {
+                margin-bottom: 0;
+                margin-right: 2vw;
+                padding: 1vh 1vw;
+            }
+            .info-box:last-child {
+                margin-right: 0;
+            }
+            .info-box p {
+                font-size: 2.5vh;
+            }
+            .info-box span {
+                font-size: 4.5vh;
+            }
+        }
     </style>
 </head>
 <body class="dark-mode">
-   <div id="banner">
-    <div id="buttonContainer">
-        <button id="howToPlayButton" class="button">❔</button>
-        <button id="toggleModeButton" class="button">🌞</button>
-        <button id="modeToggleButton" class="button">♾️</button>
+    <div id="banner">
+        <div id="buttonContainer">
+            <button id="howToPlayButton" class="button">❔</button>
+            <button id="toggleModeButton" class="button">🌞</button>
+            <button id="modeToggleButton" class="button">♾️</button>
+        </div>
+        <img id="logo" src="images/hexpath_text.png" alt="HexPath">
+        <div style="width: 10vw;"></div>
     </div>
-    <img id="logo" src="images/hexpath_text.png" alt="HexPath">
-    <div style="width: 10vw;"></div>
-</div>
     <div id="gameContainer">
         <div id="gameInfo">
             <div class="info-box">
@@ -285,21 +310,21 @@
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - 10 * window.innerHeight / 100; // Subtract banner height
+            canvas.height = window.innerHeight - (window.innerHeight * 10 / 100); // Subtract banner height
 
             const containerWidth = canvas.width;
             const containerHeight = canvas.height;
-            
+
             const horizontalHexCount = gridSize * 2 - 1;
             const verticalHexCount = gridSize * 2 - 1;
-            
+
             const maxHexWidth = containerWidth / (horizontalHexCount + 0.5);
             const maxHexHeight = containerHeight / (verticalHexCount * Math.sqrt(3) / 1.9 + 0.5);
-            
+
             hexRadius = Math.min(maxHexWidth / 2, maxHexHeight / Math.sqrt(3)) * 0.95;
             hexHeight = hexRadius * Math.sqrt(3);
             hexWidth = hexRadius * 2;
-            
+
             if (!gameInitialized) {
                 initializeGrid();
                 gameInitialized = true;
@@ -314,8 +339,8 @@
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             for (let hex of grid) {
-                hex.x = centerX + hexWidth * 3/4 * hex.q;
-                hex.y = centerY + hexHeight * (hex.r + hex.q/2);
+                hex.x = centerX + hexWidth * 3 / 4 * hex.q;
+                hex.y = centerY + hexHeight * (hex.r + hex.q / 2);
             }
         }
 
@@ -332,7 +357,7 @@
                 }
             }
             ctx.closePath();
-            
+
             if (isVisited) {
                 ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(64, 64, 64, 0.8)' : 'rgba(192, 192, 192, 0.8)';
             } else if (isGoal) {
@@ -343,16 +368,16 @@
                 ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(139, 0, 0, 0.8)' : 'rgba(255, 100, 100, 0.8)';
             }
             ctx.fill();
-            
+
             ctx.strokeStyle = document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
             ctx.lineWidth = 2;
             ctx.stroke();
 
             ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)';
-            ctx.font = `${isGoal ? 2 : 2.5}vh Arial`;
+            ctx.font = `${hexRadius * 0.3}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            
+
             if (isGoal) {
                 ctx.fillText("GOAL", x, y);
             } else if (!isVisited) {
@@ -394,14 +419,14 @@
         function loadGameState() {
             const savedState = localStorage.getItem('dailyGameState');
             const savedDate = localStorage.getItem('dailyGameDate');
-            
+
             if (savedState && savedDate === new Date().toDateString()) {
                 const gameState = JSON.parse(savedState);
                 currentValue = gameState.currentValue;
                 currentPosition = grid.find(hex => hex.q === gameState.currentPosition.q && hex.r === gameState.currentPosition.r);
                 visitedHexagons = new Set(gameState.visitedHexagons);
                 goalValue = gameState.goalValue;
-                
+
                 gameState.grid.forEach(savedHex => {
                     const hex = grid.find(h => h.q === savedHex.q && h.r === savedHex.r);
                     if (hex) {
@@ -411,7 +436,7 @@
 
                 document.getElementById('currentValue').textContent = currentValue;
                 document.getElementById('goalValue').textContent = goalValue;
-                
+
                 drawGrid();
                 drawPlayerCircle(currentPosition.x, currentPosition.y);
                 return true;
@@ -426,17 +451,17 @@
             for (let q = -gridSize + 1; q < gridSize; q++) {
                 for (let r = -gridSize + 1; r < gridSize; r++) {
                     if (Math.abs(q + r) < gridSize) {
-                        const x = centerX + hexWidth * 3/4 * q;
-                        const y = centerY + hexHeight * (r + q/2);
+                        const x = centerX + hexWidth * 3 / 4 * q;
+                        const y = centerY + hexHeight * (r + q / 2);
                         const values = Array(6).fill(0);
-                        grid.push({q, r, x, y, values});
+                        grid.push({ q, r, x, y, values });
                     }
                 }
             }
 
             currentPosition = grid.find(hex => hex.q === 0 && hex.r === gridSize - 1);
             goalPosition = grid.find(hex => hex.q === 0 && hex.r === -gridSize + 1);
-            
+
             if (!isUnlimitedMode && loadGameState()) {
                 return;
             }
@@ -445,7 +470,7 @@
             let randomFunc = () => seededRandom(seed++);
 
             const path = generateSolvablePath(randomFunc);
-            
+
             for (let hex of grid) {
                 if (!path.includes(hex) && hex !== goalPosition) {
                     hex.values = hex.values.map(() => Math.floor(randomFunc() * 7) - 3);
@@ -465,39 +490,39 @@
             const path = [currentPosition];
             let currentHex = currentPosition;
             let pathSum = 0;
-            
+
             goalValue = Math.floor(randomFunc() * 20) + 1;
             document.getElementById('goalValue').textContent = goalValue;
 
             while (currentHex !== goalPosition) {
                 const neighbors = getAdjacentHexagons(currentHex);
                 const nextHex = neighbors[Math.floor(randomFunc() * neighbors.length)];
-                
+
                 if (!nextHex) break;
-                
+
                 const remainingSteps = Math.abs(goalPosition.q - nextHex.q) + Math.abs(goalPosition.r - nextHex.r);
                 const targetSum = goalValue * (path.length / (path.length + remainingSteps));
-                
+
                 const idealValue = targetSum - pathSum;
                 const minValue = Math.max(Math.floor(idealValue - 1), -3);
                 const maxValue = Math.min(Math.ceil(idealValue + 1), 3);
                 const value = Math.floor(randomFunc() * (maxValue - minValue + 1)) + minValue;
-                
+
                 const direction = getDirection(currentHex, nextHex);
                 nextHex.values[(direction + 3) % 6] = value;
-                
+
                 pathSum += value;
                 path.push(nextHex);
                 currentHex = nextHex;
             }
-            
+
             if (path.length > 1) {
                 const lastHex = path[path.length - 2];
                 const direction = getDirection(lastHex, goalPosition);
                 lastHex.values[direction] += goalValue - pathSum;
                 lastHex.values[direction] = Math.max(-3, Math.min(3, lastHex.values[direction]));
             }
-            
+
             return path;
         }
 
@@ -526,8 +551,8 @@
 
         function getAdjacentHexagons(hex) {
             const directions = [
-                {q: 1, r: 0}, {q: 0, r: 1}, {q: -1, r: 1},
-                {q: -1, r: 0}, {q: 0, r: -1}, {q: 1, r: -1}
+                { q: 1, r: 0 }, { q: 0, r: 1 }, { q: -1, r: 1 },
+                { q: -1, r: 0 }, { q: 0, r: -1 }, { q: 1, r: -1 }
             ];
             return directions
                 .map(dir => grid.find(h => h.q === hex.q + dir.q && h.r === hex.r + dir.r))
@@ -541,7 +566,7 @@
             function animate(currentTime) {
                 const elapsedTime = currentTime - startTime;
                 const progress = Math.min(elapsedTime / duration, 1);
-                
+
                 const easeProgress = 1 - Math.pow(1 - progress, 3);
 
                 const x = from.x + (to.x - from.x) * easeProgress;
@@ -567,7 +592,7 @@
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
 
-            const clickedHex = grid.find(hex => 
+            const clickedHex = grid.find(hex =>
                 Math.sqrt((x - hex.x) ** 2 + (y - hex.y) ** 2) < hexRadius
             );
 
@@ -609,7 +634,7 @@
             animationInProgress = false;
             drawGrid();
             drawPlayerCircle(currentPosition.x, currentPosition.y);
-            
+
             if (isUnlimitedMode) {
                 showUnlimitedModal(message);
             } else {
@@ -653,7 +678,7 @@
             const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-            document.getElementById('timerDisplay').textContent = 
+            document.getElementById('timerDisplay').textContent =
                 `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
@@ -684,10 +709,10 @@
             document.getElementById('currentValue').textContent = currentValue;
             document.getElementById('unlimitedModalOverlay').style.display = 'none';
             document.getElementById('dailyModalOverlay').style.display = 'none';
-            
+
             dailyGameCompleted = false;
             dailyGamePlayed = false;
-            
+
             if (!isUnlimitedMode) {
                 localStorage.setItem('dailyGameCompleted', 'false');
                 localStorage.setItem('dailyGameDate', today);
