@@ -20,10 +20,10 @@
         }
 
         .header img {
-            width: 200px; /* Adjust size as needed */
+            width: 200px;
             height: auto;
             margin-bottom: 10px;
-            cursor: pointer; /* Add cursor pointer to indicate it's clickable */
+            cursor: pointer;
         }
         .header-title {
             font-size: 32px;
@@ -35,6 +35,7 @@
             justify-content: center;
             gap: 20px;
             width: 100%;
+            max-width: 1200px;
         }
         .card {
             background-color: #202020;
@@ -42,8 +43,9 @@
             border-radius: 5px;
             overflow: hidden;
             transition: transform 0.3s ease;
-            width: 250px; /* Fixed width for all cards */
-            height: 250px; /* Fixed height for all cards */
+            width: calc(25% - 15px);
+            max-width: 250px;
+            height: 250px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -66,7 +68,7 @@
             padding: 15px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Ensure content and button are spaced properly */
+            justify-content: space-between;
             flex-grow: 1;
         }
         .card-title {
@@ -91,37 +93,21 @@
             background-color: #505050;
         }
         @media (max-width: 1200px) {
-            .card-container {
-                flex-direction: column;
-                align-items: center;
-            }
             .card {
-                flex: 1 1 calc(33.333% - 40px); /* 3 columns for medium screens */
-                max-width: 33.333%;
+                width: calc(33.333% - 13.333px);
             }
         }
         @media (max-width: 900px) {
-            .card-container {
-                flex-direction: column;
-                align-items: center;
-            }
             .card {
-                flex: 1 1 calc(50% - 40px); /* 2 columns for small screens */
-                max-width: 50%;
+                width: calc(50% - 10px);
             }
         }
         @media (max-width: 600px) {
-            .card-container {
-                flex-direction: column;
-                align-items: center;
-            }
             .card {
-                flex: 1 1 100%; /* 1 column for extra small screens */
-                max-width: 100%;
+                width: 100%;
             }
         }
 
-        /* Add CSS for 3D spinning animation */
         @keyframes spin3D {
             from {
                 transform: rotateY(0deg);
@@ -191,8 +177,6 @@
                 <a href="sphere.html" class="launch-btn" target="_blank">LAUNCH</a>
             </div>
         </div>
-    </div>
-<br>
         <div class="card" onmouseover="playGif(this)" onmouseout="stopGif(this)">
             <div class="card-image">
                 <img src="images/voxelplot-preview.jpg" alt="Voxel Plot Preview" 
@@ -203,7 +187,21 @@
                 <a href="voxelplot.html" class="launch-btn" target="_blank">LAUNCH</a>
             </div>
         </div>
+       <div class="card">
+            <div class="card-image">
+                <img src="images/hexpath.png" alt="HexPath Preview">
+                     
+            </div>
+            <div class="card-content">
+                <div class="card-title">HexPath</div>
+                <a href="hexpath.html" class="launch-btn" target="_blank">LAUNCH</a>
+            </div>
+        </div>
     </div>
+    </div>
+
+ 
+
     <script>
         function playGif(card) {
             const img = card.querySelector('img');
@@ -215,7 +213,6 @@
             img.src = img.getAttribute('data-static');
         }
 
-        // Add JavaScript for 3D spinning animation
         document.getElementById('logo').addEventListener('click', function() {
             this.classList.add('spin-animation');
             this.addEventListener('animationend', function() {
