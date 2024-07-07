@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexPath</title>
+    <link rel="icon" sizes="16x16" href="images/favicon2.ico" type="image/x-icon">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.dark-mode {
+            background-color: #111111;
+            color: white;
+        }
+        body.light-mode {
+            background-color: #EEEEEE;
+            color: black;
+        }
+    #banner {
+        width: 100%;
+        height: 75px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        box-sizing: border-box;
+        background-color: #1a1a1a; /* Dark background for the banner */
+    }
+    #banner {
+        width: 100%;
+        height: 80px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        box-sizing: border-box;
+        transition: background-color 0.3s, color 0.3s;
+	border-bottom: 1px solid #8a8a8a;
+    }
+
+    .dark-mode #banner {
+        background-color: #1a1a1a;
+    }
+
+    .light-mode #banner {
+        background-color: #d0d0d0;
+    }
+          #logo {
+        height: 300px;
+        margin-bottom: 0px;
+	margin-center: auto;
+    }
+         #buttonContainer {
+        display: flex;
+        flex-direction: row; /* Change to row to align buttons horizontally */
+        align-items: center;
+        gap: 10px; /* Add some space between buttons */
+    }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 80px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #gameInfo {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .info-box {
+            border-radius: 10px;
+            padding: 10px 30px;
+            text-align: center;
+            margin-bottom: 10px; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode .info-box {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .light-mode .info-box {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        .info-box p {
+            margin: 0;
+            font-size: 12px;
+        }
+        .dark-mode .info-box p {
+            color: #888;
+        }
+        .light-mode .info-box p {
+            color: #555;
+        }
+        .info-box span {
+            display: block;
+            font-size: 30px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        #hexGrid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        .overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .overlay-content {
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            max-width: 40%;
+            transform: scale(0.8);
+            transition: transform 0.5s ease-in-out;
+        }
+        .dark-mode .overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        .light-mode .overlay {
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+        .dark-mode .overlay-content {
+            background-color: #222;
+            color: white;
+        }
+        .light-mode .overlay-content {
+            background-color: #ddd;
+            color: black;
+        }
+        .overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+        .overlay.show .overlay-content {
+            transform: scale(1);
+        }
+        .overlay-message {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+       .button {
+        background-color: #c00000;
+        border: none;
+        color: white;
+        padding: 10px 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 20px;
+        margin: 0; /* Remove margin */
+        cursor: pointer;
+        border-radius: 5px;
+        transition: background-color 0.3s;
+    }
+
+    .button:hover {
+        background-color: #910000;
+    }
+        #unlimitedModalOverlay, #dailyModalOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            max-width: 80%;
+            color: #333;
+        }
+        .dark-mode .modal-content {
+            background-color: #333;
+            color: #f4f4f4;
+        }
+        .modalMessage {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #streakCount {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        #timerDisplay {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+   <div id="banner">
+    <div id="buttonContainer">
+        <button id="howToPlayButton" class="button">❔</button>
+        <button id="toggleModeButton" class="button">🌞</button>
+        <button id="modeToggleButton" class="button">♾️</button>
+    </div>
+    <img id="logo" src="images/hexpath_text.png" alt="HexPath">
+    <div style="width: 150px;"></div> <!-- Placeholder for right side balance -->
+</div>
+    <div id="gameContainer">
+        <div id="gameInfo">
+            <div class="info-box">
+                <p>Current</p>
+                <span id="currentValue">3</span>
+            </div>
+            <div class="info-box">
+                <p>Goal</p>
+                <span id="goalValue">0</span>
+            </div>
+        </div>
+        <canvas id="hexGrid"></canvas>
+        <div id="instructionsOverlay" class="overlay">
+            <div class="overlay-content">
+		<img src="images/hexpath.png" alt="HTML tutorial" style="width:128px;height:128px;">
+                <h2>How to Play HexPath</h2>
+                <p>1. Start from the bottom hex with a value of 3.</p>
+		
+                <p>2. Click adjacent hexes to move.</p>
+                <p>3. Each move adds or subtracts the value on the connecting side.</p>
+                <p>4. Reach the top hex with exactly the goal value to win.</p>
+                <p>5. Game over if your value reaches 0 or below, if there are no valid moves, or if you reach the goal without matching the goal value.</p>
+                <button id="closeInstructionsButton" class="button">Close</button>
+            </div>
+        </div>
+        <div id="unlimitedModalOverlay">
+            <div class="modal-content">
+                <div id="unlimitedModalMessage" class="modalMessage"></div>
+                <button id="playAgainButton" class="button">Play Again</button>
+            </div>
+        </div>
+        <div id="dailyModalOverlay">
+            <div class="modal-content">
+                <div id="dailyModalMessage" class="modalMessage"></div>
+                <div id="streakCount"></div>
+                <div>Next challenge in:</div>
+                <div id="timerDisplay"></div>
+                <button id="closeDailyModalButton" class="button">Close</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('hexGrid');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 5;
+        let hexRadius, hexHeight, hexWidth;
+        let gameInitialized = false;
+
+        let currentValue = 3;
+        let goalValue = 0;
+        let currentPosition = null;
+        let goalPosition = null;
+        let grid = [];
+        let visitedHexagons = new Set();
+        let animationInProgress = false;
+        let isUnlimitedMode = true;
+        let dailyGamePlayed = false;
+        let dailyGameCompleted = false;
+        let dailySeed = null;
+        let streak = 0;
+
+        function getDailySeed() {
+            if (dailySeed === null) {
+                const now = new Date();
+                dailySeed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+            }
+            return dailySeed;
+        }
+
+        function seededRandom(seed) {
+            let x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - 80; // Subtract banner height
+
+            const containerWidth = canvas.width;
+            const containerHeight = canvas.height;
+            
+            const horizontalHexCount = gridSize * 2 - 1;
+            const verticalHexCount = gridSize * 2 - 1;
+            
+            const maxHexWidth = containerWidth / (horizontalHexCount + 0.5);
+            const maxHexHeight = containerHeight / (verticalHexCount * Math.sqrt(3) / 1.9 + 0.5);
+            
+            hexRadius = Math.min(maxHexWidth / 2, maxHexHeight / Math.sqrt(3)) * 0.95;
+            hexHeight = hexRadius * Math.sqrt(3);
+            hexWidth = hexRadius * 2;
+            
+            if (!gameInitialized) {
+                initializeGrid();
+                gameInitialized = true;
+            } else {
+                updateGridPositions();
+            }
+            drawGrid();
+            drawPlayerCircle(currentPosition.x, currentPosition.y);
+        }
+
+        function updateGridPositions() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            for (let hex of grid) {
+                hex.x = centerX + hexWidth * 3/4 * hex.q;
+                hex.y = centerY + hexHeight * (hex.r + hex.q/2);
+            }
+        }
+
+        function drawHexagon(x, y, values, isVisited, isGoal, isAdjacent) {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI / 3 * i;
+                const xPos = x + hexRadius * Math.cos(angle);
+                const yPos = y + hexRadius * Math.sin(angle);
+                if (i === 0) {
+                    ctx.moveTo(xPos, yPos);
+                } else {
+                    ctx.lineTo(xPos, yPos);
+                }
+            }
+            ctx.closePath();
+            
+            if (isVisited) {
+                ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(64, 64, 64, 0.8)' : 'rgba(192, 192, 192, 0.8)';
+            } else if (isGoal) {
+                ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(0, 128, 128, 0.8)' : 'rgba(0, 200, 200, 0.8)';
+            } else if (isAdjacent) {
+                ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(139, 69, 19, 0.8)' : 'rgba(210, 180, 140, 0.8)';
+            } else {
+                ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(139, 0, 0, 0.8)' : 'rgba(255, 100, 100, 0.8)';
+            }
+            ctx.fill();
+            
+            ctx.strokeStyle = document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)';
+            ctx.font = `${isGoal ? 16 : 14}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            if (isGoal) {
+                ctx.fillText("GOAL", x, y);
+            } else if (!isVisited) {
+                for (let i = 0; i < 6; i++) {
+                    const angle = Math.PI / 3 * (i + 0.5);
+                    const textX = x + hexRadius * Math.cos(angle) * 0.65;
+                    const textY = y + hexRadius * Math.sin(angle) * 0.65;
+                    ctx.fillText(values[i].toString(), textX, textY);
+                }
+            }
+        }
+
+        function drawPlayerCircle(x, y) {
+            ctx.beginPath();
+            ctx.arc(x, y, hexRadius / 4.5, 0, 2 * Math.PI);
+            ctx.fillStyle = document.body.classList.contains('dark-mode') ? 'white' : 'black';
+            ctx.fill();
+            ctx.strokeStyle = document.body.classList.contains('dark-mode') ? 'black' : 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function saveGameState() {
+            const gameState = {
+                currentValue,
+                currentPosition: { q: currentPosition.q, r: currentPosition.r },
+                visitedHexagons: Array.from(visitedHexagons),
+                grid: grid.map(hex => ({
+                    q: hex.q,
+                    r: hex.r,
+                    values: hex.values
+                })),
+                goalValue
+            };
+            localStorage.setItem('dailyGameState', JSON.stringify(gameState));
+            localStorage.setItem('dailyGameDate', new Date().toDateString());
+        }
+
+        function loadGameState() {
+            const savedState = localStorage.getItem('dailyGameState');
+            const savedDate = localStorage.getItem('dailyGameDate');
+            
+if (savedState && savedDate === new Date().toDateString()) {
+                const gameState = JSON.parse(savedState);
+                currentValue = gameState.currentValue;
+                currentPosition = grid.find(hex => hex.q === gameState.currentPosition.q && hex.r === gameState.currentPosition.r);
+                visitedHexagons = new Set(gameState.visitedHexagons);
+                goalValue = gameState.goalValue;
+                
+                gameState.grid.forEach(savedHex => {
+                    const hex = grid.find(h => h.q === savedHex.q && h.r === savedHex.r);
+                    if (hex) {
+                        hex.values = savedHex.values;
+                    }
+                });
+
+                document.getElementById('currentValue').textContent = currentValue;
+                document.getElementById('goalValue').textContent = goalValue;
+                
+                drawGrid();
+                drawPlayerCircle(currentPosition.x, currentPosition.y);
+                return true;
+            }
+            return false;
+        }
+
+        function initializeGrid() {
+            grid = [];
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            for (let q = -gridSize + 1; q < gridSize; q++) {
+                for (let r = -gridSize + 1; r < gridSize; r++) {
+                    if (Math.abs(q + r) < gridSize) {
+                        const x = centerX + hexWidth * 3/4 * q;
+                        const y = centerY + hexHeight * (r + q/2);
+                        const values = Array(6).fill(0);
+                        grid.push({q, r, x, y, values});
+                    }
+                }
+            }
+
+            currentPosition = grid.find(hex => hex.q === 0 && hex.r === gridSize - 1);
+            goalPosition = grid.find(hex => hex.q === 0 && hex.r === -gridSize + 1);
+            
+            if (!isUnlimitedMode && loadGameState()) {
+                return;
+            }
+
+            let seed = isUnlimitedMode ? Math.random() * 1000000 : getDailySeed();
+            let randomFunc = () => seededRandom(seed++);
+
+            const path = generateSolvablePath(randomFunc);
+            
+            for (let hex of grid) {
+                if (!path.includes(hex) && hex !== goalPosition) {
+                    hex.values = hex.values.map(() => Math.floor(randomFunc() * 7) - 3);
+                }
+            }
+
+            visitedHexagons.clear();
+            visitedHexagons.add(`${currentPosition.q},${currentPosition.r}`);
+            document.getElementById('goalValue').textContent = goalValue;
+
+            if (!isUnlimitedMode) {
+                saveGameState();
+            }
+        }
+
+        function generateSolvablePath(randomFunc) {
+            const path = [currentPosition];
+            let currentHex = currentPosition;
+            let pathSum = 0;
+            
+            goalValue = Math.floor(randomFunc() * 20) + 1;
+            document.getElementById('goalValue').textContent = goalValue;
+
+            while (currentHex !== goalPosition) {
+                const neighbors = getAdjacentHexagons(currentHex);
+                const nextHex = neighbors[Math.floor(randomFunc() * neighbors.length)];
+                
+                if (!nextHex) break;
+                
+                const remainingSteps = Math.abs(goalPosition.q - nextHex.q) + Math.abs(goalPosition.r - nextHex.r);
+                const targetSum = goalValue * (path.length / (path.length + remainingSteps));
+                
+                const idealValue = targetSum - pathSum;
+                const minValue = Math.max(Math.floor(idealValue - 1), -3);
+                const maxValue = Math.min(Math.ceil(idealValue + 1), 3);
+                const value = Math.floor(randomFunc() * (maxValue - minValue + 1)) + minValue;
+                
+                const direction = getDirection(currentHex, nextHex);
+                nextHex.values[(direction + 3) % 6] = value;
+                
+                pathSum += value;
+                path.push(nextHex);
+                currentHex = nextHex;
+            }
+            
+            if (path.length > 1) {
+                const lastHex = path[path.length - 2];
+                const direction = getDirection(lastHex, goalPosition);
+                lastHex.values[direction] += goalValue - pathSum;
+                lastHex.values[direction] = Math.max(-3, Math.min(3, lastHex.values[direction]));
+            }
+            
+            return path;
+        }
+
+        function getDirection(from, to) {
+            const dx = to.q - from.q;
+            const dy = to.r - from.r;
+            if (dx === 1 && dy === 0) return 0;
+            if (dx === 0 && dy === 1) return 1;
+            if (dx === -1 && dy === 1) return 2;
+            if (dx === -1 && dy === 0) return 3;
+            if (dx === 0 && dy === -1) return 4;
+            if (dx === 1 && dy === -1) return 5;
+            return -1;
+        }
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const adjacentHexagons = getAdjacentHexagons(currentPosition);
+            for (const hex of grid) {
+                const isVisited = visitedHexagons.has(`${hex.q},${hex.r}`);
+                const isGoal = hex === goalPosition;
+                const isAdjacent = adjacentHexagons.includes(hex);
+                drawHexagon(hex.x, hex.y, hex.values, isVisited, isGoal, isAdjacent);
+            }
+        }
+
+        function getAdjacentHexagons(hex) {
+            const directions = [
+                {q: 1, r: 0}, {q: 0, r: 1}, {q: -1, r: 1},
+                {q: -1, r: 0}, {q: 0, r: -1}, {q: 1, r: -1}
+            ];
+            return directions
+                .map(dir => grid.find(h => h.q === hex.q + dir.q && h.r === hex.r + dir.r))
+                .filter(h => h && !visitedHexagons.has(`${h.q},${h.r}`));
+        }
+
+        function animateMove(from, to, callback) {
+            const duration = 300;
+            const startTime = performance.now();
+
+            function animate(currentTime) {
+                const elapsedTime = currentTime - startTime;
+                const progress = Math.min(elapsedTime / duration, 1);
+                
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+                const x = from.x + (to.x - from.x) * easeProgress;
+                const y = from.y + (to.y - from.y) * easeProgress;
+
+                drawGrid();
+                drawPlayerCircle(x, y);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    callback();
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function handleClick(event) {
+            if (animationInProgress || (dailyGameCompleted && !isUnlimitedMode)) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const clickedHex = grid.find(hex => 
+                Math.sqrt((x - hex.x) ** 2 + (y - hex.y) ** 2) < hexRadius
+            );
+
+            if (clickedHex && getAdjacentHexagons(currentPosition).includes(clickedHex)) {
+                animationInProgress = true;
+                animateMove(currentPosition, clickedHex, () => {
+                    if (clickedHex === goalPosition) {
+                        if (currentValue === goalValue) {
+                            endGame('Congratulations! You reached the goal with the correct value!');
+                        } else {
+                            endGame('Game Over! You reached the goal but with the wrong value.');
+                        }
+                    } else {
+                        const direction = getDirection(currentPosition, clickedHex);
+                        currentValue += clickedHex.values[(direction + 3) % 6];
+                        currentPosition = clickedHex;
+                        visitedHexagons.add(`${clickedHex.q},${clickedHex.r}`);
+
+                        document.getElementById('currentValue').textContent = currentValue;
+
+                        if (currentValue <= 0) {
+                            endGame('Game Over! Your value reached zero or below.');
+                        } else if (getAdjacentHexagons(currentPosition).length === 0) {
+                            endGame('Game Over! No more valid moves.');
+                        } else {
+                            drawGrid();
+                            drawPlayerCircle(currentPosition.x, currentPosition.y);
+                            animationInProgress = false;
+                            if (!isUnlimitedMode) {
+                                saveGameState();
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function endGame(message) {
+            animationInProgress = false;
+            drawGrid();
+            drawPlayerCircle(currentPosition.x, currentPosition.y);
+            
+            if (isUnlimitedMode) {
+                showUnlimitedModal(message);
+            } else {
+                dailyGameCompleted = true;
+                dailyGamePlayed = true;
+                localStorage.setItem('dailyGameCompleted', 'true');
+                localStorage.setItem('dailyGameDate', new Date().toDateString());
+
+                if (message.includes('Congratulations')) {
+                    streak++;
+                    localStorage.setItem('streak', streak);
+                } else {
+                    streak = 0;
+                    localStorage.setItem('streak', 0);
+                }
+
+                showDailyModal(message);
+            }
+        }
+
+        function showUnlimitedModal(message) {
+            document.getElementById('unlimitedModalMessage').textContent = message;
+            document.getElementById('unlimitedModalOverlay').style.display = 'flex';
+        }
+
+        function showDailyModal(message) {
+            document.getElementById('dailyModalMessage').textContent = message;
+            document.getElementById('streakCount').textContent = `Current streak: ${streak}`;
+            document.getElementById('dailyModalOverlay').style.display = 'flex';
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            const now = new Date();
+            const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            const timeLeft = tomorrow - now;
+
+            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById('timerDisplay').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function startGame() {
+            const lastPlayedDate = localStorage.getItem('dailyGameDate');
+            const wasCompleted = localStorage.getItem('dailyGameCompleted');
+            const today = new Date().toDateString();
+
+            streak = parseInt(localStorage.getItem('streak') || '0');
+
+            if (!isUnlimitedMode && lastPlayedDate === today) {
+                if (wasCompleted === 'true') {
+                    dailyGameCompleted = true;
+                    dailyGamePlayed = true;
+                    loadGameState(); // Load the final state of the completed game
+                    showDailyModal('Daily challenge completed!');
+                    return;
+                } else {
+                    dailyGameCompleted = false;
+                    dailyGamePlayed = true;
+                    loadGameState();
+                    return;
+                }
+            }
+
+            currentValue = 3;
+            visitedHexagons.clear();
+            document.getElementById('currentValue').textContent = currentValue;
+            document.getElementById('unlimitedModalOverlay').style.display = 'none';
+            document.getElementById('dailyModalOverlay').style.display = 'none';
+            
+            dailyGameCompleted = false;
+            dailyGamePlayed = false;
+            
+            if (!isUnlimitedMode) {
+                localStorage.setItem('dailyGameCompleted', 'false');
+                localStorage.setItem('dailyGameDate', today);
+            }
+
+            gameInitialized = false;
+            resizeCanvas();
+        }
+
+        function toggleMode() {
+            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('light-mode');
+            document.getElementById('toggleModeButton').textContent = document.body.classList.contains('dark-mode') ? '🌞' : '🌒';
+            drawGrid();
+            drawPlayerCircle(currentPosition.x, currentPosition.y);
+        }
+
+        function showInstructions() {
+            document.getElementById('instructionsOverlay').classList.add('show');
+        }
+
+        function hideInstructions() {
+            document.getElementById('instructionsOverlay').classList.remove('show');
+        }
+
+        function toggleGameMode() {
+            isUnlimitedMode = !isUnlimitedMode;
+            document.getElementById('modeToggleButton').textContent = isUnlimitedMode ? '♾️' : '📅';
+            startGame();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        document.getElementById('playAgainButton').addEventListener('click', () => {
+            if (isUnlimitedMode) {
+                startGame();
+            }
+        });
+        document.getElementById('closeDailyModalButton').addEventListener('click', () => {
+            document.getElementById('dailyModalOverlay').style.display = 'none';
+        });
+        document.getElementById('toggleModeButton').addEventListener('click', toggleMode);
+        document.getElementById('howToPlayButton').addEventListener('click', showInstructions);
+        document.getElementById('closeInstructionsButton').addEventListener('click', hideInstructions);
+        document.getElementById('modeToggleButton').addEventListener('click', toggleGameMode);
+
+        canvas.addEventListener('click', handleClick);
+        startGame();
+    </script>
+</body>
+</html>
