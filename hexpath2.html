@@ -316,10 +316,13 @@
             const horizontalHexCount = gridSize * 2 - 1;
             const verticalHexCount = gridSize * 2 - 1;
 
+            const isMobile = window.innerWidth <= 768;
+            const scaleFactor = isMobile ? 1.2 : 1;
+
             const maxHexWidth = containerWidth / (horizontalHexCount + 0.5);
             const maxHexHeight = containerHeight / (verticalHexCount * Math.sqrt(3) / 1.9 + 0.5);
 
-            hexRadius = Math.min(maxHexWidth / 2, maxHexHeight / Math.sqrt(3)) * 0.95;
+            hexRadius = Math.min(maxHexWidth / 2, maxHexHeight / Math.sqrt(3)) * 0.95 * scaleFactor;
             hexHeight = hexRadius * Math.sqrt(3);
             hexWidth = hexRadius * 2;
 
