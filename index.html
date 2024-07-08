@@ -17,7 +17,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            
         }
 
         .header img {
@@ -67,6 +66,7 @@
         }
         .card-content {
             padding: 15px;
+            align-items: center;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -79,7 +79,7 @@
         }
         .launch-btn {
             display: block;
-            width: -1%;
+            width: 50%;
             padding: 10px;
             background-color: #464646;
             color: #fff;
@@ -123,12 +123,13 @@
         }
 
         canvas {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
+            display: none;
         }
     </style>
 </head>
@@ -223,15 +224,9 @@
             img.src = img.getAttribute('data-static');
         }
 
-        document.getElementById('logo').addEventListener('click', function() {
-            this.classList.add('spin-animation');
-            this.addEventListener('animationend', function() {
-                this.classList.remove('spin-animation');
-            }, { once: true });
-        });
-
-        // Particle effect with Three.js
         let scene, camera, renderer, starsArray = [], starGeo, mouseX = 0, mouseY = 0;
+        let animationId;
+        let isSimulationRunning = false;
 
         function generateStarTexture(color) {
             const canvas = document.createElement('canvas');
@@ -239,21 +234,19 @@
             canvas.height = 64;
             const ctx = canvas.getContext('2d');
 
-            // Ensure the canvas is fully transparent
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw a glowing dot with the specified color
             const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
             gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 1)`);
             gradient.addColorStop(0.2, `rgba(${color.r}, ${color.g}, ${color.b}, 0.1)`);
-            gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 1)`); // Ensure full transparency at edges
+            gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 1)`);
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.arc(32, 32, 32, 0, Math.PI * 2, false);
             ctx.fill();
 
             const texture = new THREE.CanvasTexture(canvas);
-            texture.premultiplyAlpha = true; // This helps ensure transparency is handled correctly
+            texture.premultiplyAlpha = true;
             return texture;
         }
 
@@ -265,13 +258,14 @@
 
             renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
 
             const starCount = 25000;
             const colors = [
-                { r: 255, g: 255, b: 255 }, // White
-                { r: 200, g: 225, b: 255 },     // Blue
-                { r: 255, g: 200, b: 200 },     // Red
-                { r: 255, g: 255, b: 200 }    // Yellow
+                { r: 255, g: 255, b: 255 },
+                { r: 200, g: 225, b: 255 },
+                { r: 255, g: 200, b: 200 },
+                { r: 255, g: 255, b: 200 }
             ];
 
             colors.forEach(color => {
@@ -301,9 +295,9 @@
                     sizeAttenuation: true,
                     map: generateStarTexture(color),
                     transparent: true,
-                    alphaTest: 0.1, // Ensures that fully transparent pixels are not rendered
-                    depthWrite: false,  // Prevent writing to the depth buffer
-                    blending: THREE.AdditiveBlending,  // Use additive blending for a glowing effect
+                    alphaTest: 0.1,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
                 });
 
                 const stars = new THREE.Points(starGeo, starMaterial);
@@ -312,13 +306,19 @@
             });
 
             document.addEventListener('mousemove', onMouseMove, false);
-
-            animate();
+            document.addEventListener('touchmove', onTouchMove, false);
         }
 
         function onMouseMove(event) {
-            mouseX = (event.clientX - window.innerWidth / 2) * 0.1;
-            mouseY = (event.clientY - window.innerHeight / 2) * 0.1;
+            mouseX = (event.clientX / window.innerWidth - 0.5) * 2;
+            mouseY = (event.clientY / window.innerHeight - 0.5) * 2;
+        }
+
+        function onTouchMove(event) {
+            if (event.touches.length > 0) {
+                mouseX = (event.touches[0].clientX / window.innerWidth - 0.5) * 2;
+                mouseY = (event.touches[0].clientY / window.innerHeight - 0.5) * 2;
+            }
         }
 
         function animate() {
@@ -339,21 +339,47 @@
                 stars.geometry.attributes.position.needsUpdate = true;
 
                 stars.rotation.y += 0.0001;
-                stars.rotation.x += (mouseY * 0.00095) - stars.rotation.x;
-                stars.rotation.z += (mouseX * 0.00095) - stars.rotation.z;
+                stars.rotation.x += (mouseY * 0.0585 - stars.rotation.x) * 0.1;
+                stars.rotation.z += (mouseX * 0.0585 - stars.rotation.z) * 0.1;
             });
 
             renderer.render(scene, camera);
-            requestAnimationFrame(animate);
+            animationId = requestAnimationFrame(animate);
         }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        function onWindowResize() {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        function toggleSimulation() {
+            const canvas = document.getElementById('canvas');
+            if (isSimulationRunning) {
+                canvas.style.display = 'none';
+                cancelAnimationFrame(animationId);
+                isSimulationRunning = false;
+            } else {
+                canvas.style.display = 'block';
+                if (!scene) {
+                    init();
+                }
+                animate();
+                isSimulationRunning = true;
+            }
+        }
+
+        document.getElementById('logo').addEventListener('click', function() {
+            this.classList.add('spin-animation');
+            this.addEventListener('animationend', function() {
+                this.classList.remove('spin-animation');
+            }, { once: true });
+            toggleSimulation();
         });
 
-        init();
+        window.addEventListener('resize', onWindowResize);
     </script>
 </body>
 </html>
