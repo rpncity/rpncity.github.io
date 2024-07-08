@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #111;
+            background-color: #1f1f1f;
             color: #fff;
             margin: 0;
             padding: 20px;
@@ -17,7 +17,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow: hidden;
+            
         }
 
         .header img {
@@ -39,8 +39,8 @@
             max-width: 1200px;
         }
         .card {
-            background-color: #202020;
-            border: 1px solid #404040;
+            background-color: #141414;
+            border: 1px solid #474747;
             border-radius: 5px;
             overflow: hidden;
             transition: transform 0.3s ease;
@@ -81,7 +81,7 @@
             display: block;
             width: -1%;
             padding: 10px;
-            background-color: #404040;
+            background-color: #464646;
             color: #fff;
             text-align: center;
             text-decoration: none;
@@ -239,17 +239,21 @@
             canvas.height = 64;
             const ctx = canvas.getContext('2d');
 
+            // Ensure the canvas is fully transparent
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             // Draw a glowing dot with the specified color
             const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
             gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 1)`);
-            gradient.addColorStop(0.2, `rgba(${color.r}, ${color.g}, ${color.b}, 0.6)`);
-            gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+            gradient.addColorStop(0.2, `rgba(${color.r}, ${color.g}, ${color.b}, 0.1)`);
+            gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 1)`); // Ensure full transparency at edges
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.arc(32, 32, 32, 0, Math.PI * 2, false);
             ctx.fill();
 
             const texture = new THREE.CanvasTexture(canvas);
+            texture.premultiplyAlpha = true; // This helps ensure transparency is handled correctly
             return texture;
         }
 
@@ -259,13 +263,13 @@
             camera.position.z = 1;
             camera.rotation.x = Math.PI / 2;
 
-            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas') });
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
 
             const starCount = 25000;
             const colors = [
                 { r: 255, g: 255, b: 255 }, // White
-                { r: 200, g: 200, b: 255 },     // Blue
+                { r: 200, g: 225, b: 255 },     // Blue
                 { r: 255, g: 200, b: 200 },     // Red
                 { r: 255, g: 255, b: 200 }    // Yellow
             ];
@@ -296,7 +300,10 @@
                     size: 1,
                     sizeAttenuation: true,
                     map: generateStarTexture(color),
-                    transparent: true
+                    transparent: true,
+                    alphaTest: 0.1, // Ensures that fully transparent pixels are not rendered
+                    depthWrite: false,  // Prevent writing to the depth buffer
+                    blending: THREE.AdditiveBlending,  // Use additive blending for a glowing effect
                 });
 
                 const stars = new THREE.Points(starGeo, starMaterial);
