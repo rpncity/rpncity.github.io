@@ -13,3 +13,5 @@ These are some demos of various simulations built using the help of generative A
 ![Alt text](images/road-preview.gif)
 # Voxel Plot 
 ![Alt text](images/voxelplot-preview.gif)
+# Voxel Aquarium
+![Alt text](images/aquarium-preview.gif)
